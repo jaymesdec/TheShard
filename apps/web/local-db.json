@@ -1,0 +1,235 @@
+{
+  "users": [
+    {
+      "id": "3697ff65-f9c2-481e-b6d7-d292e0bbaa97",
+      "emailVerified": null,
+      "email": "jaymesdec@gmail.com"
+    },
+    {
+      "id": "2843741f-5826-4ba3-8f87-50af42f2a2fc",
+      "emailVerified": null,
+      "email": "2029ksanvictores@franklinjc.org"
+    },
+    {
+      "id": "2da0f79a-a243-4b1c-828b-ff27af162120",
+      "emailVerified": null,
+      "email": "k6359897@gmail.com"
+    },
+    {
+      "id": "647f8d14-7d4c-4fe2-8724-116e1402bdf1",
+      "emailVerified": null,
+      "email": "kaelynsanvictores333@gmail.com"
+    },
+    {
+      "id": "84154608-2f82-4eb3-92fd-622e4ba128dd",
+      "emailVerified": null,
+      "email": "nadialegesse@franklinjc.org"
+    },
+    {
+      "id": "01a13304-6a90-447f-8941-6da258a614b3",
+      "emailVerified": null,
+      "email": "ksanvictores@franklinjc.org"
+    },
+    {
+      "id": "d7627968-cb46-4288-a797-174c14c8784b",
+      "emailVerified": null,
+      "email": "jaymesdec@gmail.comtestchat2@example.com"
+    }
+  ],
+  "sessions": [],
+  "accounts": [
+    {
+      "extraData": {
+        "password": "$argon2id$v=19$m=65536,t=3,p=4$zoncGYX5Rd4eePoY08f6tg$pg+e0RbVGSsvlvUkEFFMjFcntz5gRNhq4NEeEX03EEc"
+      },
+      "type": "credentials",
+      "userId": "3697ff65-f9c2-481e-b6d7-d292e0bbaa97",
+      "providerAccountId": "3697ff65-f9c2-481e-b6d7-d292e0bbaa97",
+      "provider": "credentials"
+    },
+    {
+      "extraData": {
+        "password": "$argon2id$v=19$m=65536,t=3,p=4$fpttQ/5/BHw/3iV/Gooa7A$H2z0idnmUI1Sshp8xO1SQ2a3v6sERrb7ufkr+earepo"
+      },
+      "type": "credentials",
+      "userId": "2843741f-5826-4ba3-8f87-50af42f2a2fc",
+      "providerAccountId": "2843741f-5826-4ba3-8f87-50af42f2a2fc",
+      "provider": "credentials"
+    },
+    {
+      "extraData": {
+        "password": "$argon2id$v=19$m=65536,t=3,p=4$LvDccXiw96zi+B/VFyul4w$VWacuqqrrS1nu3kikn4IcS9Kf2emDggNUPv8NCbAz+M"
+      },
+      "type": "credentials",
+      "userId": "2da0f79a-a243-4b1c-828b-ff27af162120",
+      "providerAccountId": "2da0f79a-a243-4b1c-828b-ff27af162120",
+      "provider": "credentials"
+    },
+    {
+      "extraData": {
+        "password": "$argon2id$v=19$m=65536,t=3,p=4$QOBPHvvZcPfPEg4D7/9Ttw$Ud3bIqT9XAQNCG9Mxh5StuEZ2hmPOTo4/jeUoO2xY5s"
+      },
+      "type": "credentials",
+      "userId": "647f8d14-7d4c-4fe2-8724-116e1402bdf1",
+      "providerAccountId": "647f8d14-7d4c-4fe2-8724-116e1402bdf1",
+      "provider": "credentials"
+    },
+    {
+      "extraData": {
+        "password": "$argon2id$v=19$m=65536,t=3,p=4$YwskJ3jXQYKVqC6U6LeZ7w$CHlAx057QC3hdqkpaQENPRhQzRBotU5fWRd1+i3uOmI"
+      },
+      "type": "credentials",
+      "userId": "84154608-2f82-4eb3-92fd-622e4ba128dd",
+      "providerAccountId": "84154608-2f82-4eb3-92fd-622e4ba128dd",
+      "provider": "credentials"
+    },
+    {
+      "extraData": {
+        "password": "$argon2id$v=19$m=65536,t=3,p=4$C0kYy9GaO013pfaV9NV9+Q$GAHwk2Qa1GIAzudU03LcM8zqdwzFFFAcZw72L5bosL0"
+      },
+      "type": "credentials",
+      "userId": "01a13304-6a90-447f-8941-6da258a614b3",
+      "providerAccountId": "01a13304-6a90-447f-8941-6da258a614b3",
+      "provider": "credentials"
+    },
+    {
+      "extraData": {
+        "password": "$argon2id$v=19$m=65536,t=3,p=4$c799MsfWEjnEyary+FWc/Q$kZr+yZzkcaQGNyYc4fHq3jkIxZJeUtLh3CzoyEa2Ajc"
+      },
+      "type": "credentials",
+      "userId": "d7627968-cb46-4288-a797-174c14c8784b",
+      "providerAccountId": "d7627968-cb46-4288-a797-174c14c8784b",
+      "provider": "credentials"
+    }
+  ],
+  "verificationTokens": [],
+  "groups": [
+    {
+      "id": "6yfgdb5kw9x",
+      "name": "group 1",
+      "created_by": "01a13304-6a90-447f-8941-6da258a614b3",
+      "created_at": "2026-01-29T20:25:52.331Z"
+    },
+    {
+      "id": "h488p1wdod4xsdom58ziam",
+      "name": "Test Group 1",
+      "created_by": "2843741f-5826-4ba3-8f87-50af42f2a2fc",
+      "created_at": "2026-02-05T19:42:03.624Z"
+    },
+    {
+      "id": "wcbedtrow5kc8e61hzcwdj",
+      "name": "Chat Test Group 2",
+      "created_by": "d7627968-cb46-4288-a797-174c14c8784b",
+      "created_at": "2026-02-06T00:31:59.737Z"
+    },
+    {
+      "id": "rc00ezo7akfgp75k39xieq",
+      "name": "Chat Test Group 3",
+      "created_by": "d7627968-cb46-4288-a797-174c14c8784b",
+      "created_at": "2026-02-06T00:35:26.916Z"
+    }
+  ],
+  "group_members": [
+    {
+      "id": "31sybabjil6",
+      "group_id": "6yfgdb5kw9x",
+      "user_id": "01a13304-6a90-447f-8941-6da258a614b3",
+      "joined_at": "2026-01-29T20:25:52.331Z"
+    },
+    {
+      "id": "jibulz7cb8k",
+      "group_id": "6yfgdb5kw9x",
+      "user_id": "84154608-2f82-4eb3-92fd-622e4ba128dd",
+      "joined_at": "2026-01-29T20:26:42.363Z"
+    },
+    {
+      "id": "7sdwsptxx2tih7ymja330c",
+      "group_id": "h488p1wdod4xsdom58ziam",
+      "user_id": "2843741f-5826-4ba3-8f87-50af42f2a2fc",
+      "joined_at": "2026-02-05T19:42:03.624Z"
+    },
+    {
+      "id": "6f219kiqwokcwuxoocbl",
+      "group_id": "wcbedtrow5kc8e61hzcwdj",
+      "user_id": "d7627968-cb46-4288-a797-174c14c8784b",
+      "joined_at": "2026-02-06T00:31:59.737Z"
+    },
+    {
+      "id": "x8bq67tr0cpagdxc6o96p4",
+      "group_id": "rc00ezo7akfgp75k39xieq",
+      "user_id": "d7627968-cb46-4288-a797-174c14c8784b",
+      "joined_at": "2026-02-06T00:35:26.916Z"
+    },
+    {
+      "id": "egielz67nfbb82cnjo1rnd",
+      "group_id": "rc00ezo7akfgp75k39xieq",
+      "user_id": "2843741f-5826-4ba3-8f87-50af42f2a2fc",
+      "joined_at": "2026-02-06T00:35:46.845Z"
+    }
+  ],
+  "notes": [
+    {
+      "id": "gmsml0h9lef5qaex8u1lui",
+      "created_by": "01a13304-6a90-447f-8941-6da258a614b3",
+      "content": "Test 1",
+      "group_id": null,
+      "created_at": "2026-02-02T19:45:04.759Z"
+    },
+    {
+      "id": "lgkx5a7nooohaxhha45k",
+      "created_by": "01a13304-6a90-447f-8941-6da258a614b3",
+      "content": "work on (test 1)",
+      "group_id": "6yfgdb5kw9x",
+      "created_at": "2026-02-02T19:50:44.185Z"
+    }
+  ],
+  "todos": [
+    {
+      "id": "e68ajkosrg9fsjrkhtosn",
+      "created_by": "01a13304-6a90-447f-8941-6da258a614b3",
+      "title": "test 1.2",
+      "group_id": null,
+      "due_date": null,
+      "assigned_to": [
+        "01a13304-6a90-447f-8941-6da258a614b3"
+      ],
+      "completed": false,
+      "created_at": "2026-02-02T19:50:13.805Z"
+    },
+    {
+      "id": "k39lhehz08hv6q49tg43fh",
+      "created_by": "01a13304-6a90-447f-8941-6da258a614b3",
+      "title": "Add feature",
+      "group_id": "6yfgdb5kw9x",
+      "due_date": null,
+      "assigned_to": [
+        "01a13304-6a90-447f-8941-6da258a614b3"
+      ],
+      "completed": false,
+      "created_at": "2026-02-02T19:50:53.439Z"
+    }
+  ],
+  "messages": [
+    {
+      "id": "i5w9msw1rznwivimuxaruf",
+      "group_id": "wcbedtrow5kc8e61hzcwdj",
+      "user_id": "d7627968-cb46-4288-a797-174c14c8784b",
+      "content": "Hello",
+      "created_at": "2026-02-06T00:33:44.336Z"
+    },
+    {
+      "id": "jm9xi1opizeuai8r6fmzm",
+      "group_id": "wcbedtrow5kc8e61hzcwdj",
+      "user_id": "d7627968-cb46-4288-a797-174c14c8784b",
+      "content": "Test 1",
+      "created_at": "2026-02-06T00:33:59.246Z"
+    },
+    {
+      "id": "yc8l12r7n2qotv9y31sqx",
+      "group_id": "rc00ezo7akfgp75k39xieq",
+      "user_id": "2843741f-5826-4ba3-8f87-50af42f2a2fc",
+      "content": "test 3",
+      "created_at": "2026-02-06T00:37:22.309Z"
+    }
+  ]
+}
