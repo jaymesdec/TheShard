@@ -124,7 +124,7 @@ export default function SignUpPage() {
 
           <button
             type="button"
-            onClick={() => signInWithGoogle()}
+            onClick={() => signInWithGoogle({ callbackUrl: "/" })}
             className="w-full flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
