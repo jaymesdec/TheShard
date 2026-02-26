@@ -85,6 +85,15 @@ export default defineConfig(({ isSsrBuild }) => ({
     },
     dedupe: ['react', 'react-dom'],
   },
+  // On Vercel, bundle ALL npm packages into the server output so the
+  // serverless function is self-contained (no node_modules needed at runtime).
+  // Native modules like argon2 must stay external and be copied manually.
+  ssr: isVercel
+    ? {
+        noExternal: true,
+        external: ['argon2'],
+      }
+    : undefined,
   build: {
     rollupOptions:
       isVercel && isSsrBuild

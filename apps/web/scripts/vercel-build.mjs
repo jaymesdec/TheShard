@@ -54,6 +54,22 @@ writeFileSync(
   JSON.stringify({ type: 'module' }, null, 2)
 );
 
+// Copy native modules that can't be bundled by Vite (ssr.external in vite.config.ts).
+// argon2 uses prebuilt native binaries (.node files).
+console.log('→ Copying native modules (argon2)...');
+const funcNodeModules = join(funcDir, 'node_modules');
+const srcNodeModules = join(ROOT, 'node_modules');
+const nativeModules = ['argon2'];
+for (const mod of nativeModules) {
+  const src = join(srcNodeModules, mod);
+  const dest = join(funcNodeModules, mod);
+  try {
+    cpSync(src, dest, { recursive: true });
+  } catch (e) {
+    console.warn(`  Warning: Could not copy ${mod}: ${e.message}`);
+  }
+}
+
 // Create the adapter entry point that bridges Node.js (req, res) ↔ Web API (Request → Response)
 // Our index.js exports app.fetch which is (Request) => Response, but Vercel's Node.js
 // runtime expects (IncomingMessage, ServerResponse) => void.
