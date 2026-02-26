@@ -20,10 +20,10 @@ function useAuth() {
     });
   }, [callbackUrl])
 
-  const signInWithGoogle = useCallback((options) => {
+  const signInWithGoogle = useCallback((options = {}) => {
     return signIn("google", {
       ...options,
-      callbackUrl: callbackUrl ?? options.callbackUrl
+      callbackUrl: callbackUrl ?? options.callbackUrl ?? window.location.href,
     });
   }, [callbackUrl]);
   const signInWithFacebook = useCallback((options) => {
