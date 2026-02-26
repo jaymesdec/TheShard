@@ -44,12 +44,16 @@ export default defineConfig(({ isSsrBuild }) => ({
             resolveId(source: string, importer: string | undefined) {
               if (!importer) return null;
               const basename = source.split('/').pop()?.replace(/\.(ts|js)$/, '');
+              // Stub argon2 (replaced with bcryptjs in server/app.ts, but
+              // src/auth.js still imports it — __dirname crash in ESM)
+              if (basename === 'argon2' || source === 'argon2') {
+                return path.resolve(__dirname, 'server/argon2-stub.ts');
+              }
               if (
                 basename === 'mock-adapter' ||
                 basename === 'db' ||
                 basename === 'sql'
               ) {
-                // Only stub files that are in __create or api/utils dirs
                 if (
                   source.includes('__create/') ||
                   source.includes('api/utils/')
