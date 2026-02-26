@@ -35,6 +35,33 @@ export default defineConfig(({ isSsrBuild }) => ({
   },
   logLevel: 'info',
   plugins: [
+    // On Vercel, replace local-db mock files with stubs (Vercel fs is read-only)
+    ...(isVercel
+      ? [
+          {
+            name: 'vercel-stub-local-db',
+            enforce: 'pre' as const,
+            resolveId(source: string, importer: string | undefined) {
+              if (!importer) return null;
+              const basename = source.split('/').pop()?.replace(/\.(ts|js)$/, '');
+              if (
+                basename === 'mock-adapter' ||
+                basename === 'db' ||
+                basename === 'sql'
+              ) {
+                // Only stub files that are in __create or api/utils dirs
+                if (
+                  source.includes('__create/') ||
+                  source.includes('api/utils/')
+                ) {
+                  return path.resolve(__dirname, 'server/mock-adapter-stub.ts');
+                }
+              }
+              return null;
+            },
+          },
+        ]
+      : []),
     nextPublicProcessEnv(),
     restartEnvFileChange(),
     // Only use the Hono dev server plugin for local development.
