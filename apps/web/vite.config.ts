@@ -51,7 +51,6 @@ export default defineConfig(({ isSsrBuild }) => ({
               }
               if (
                 basename === 'mock-adapter' ||
-                basename === 'db' ||
                 basename === 'sql'
               ) {
                 if (
