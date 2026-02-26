@@ -18,7 +18,6 @@ import { contextStorage } from 'hono/context-storage';
 import { cors } from 'hono/cors';
 import { proxy } from 'hono/proxy';
 import { bodyLimit } from 'hono/body-limit';
-import { handle } from 'hono/vercel';
 import { createRequestHandler } from 'react-router';
 import ws from 'ws';
 import NeonAdapter from '../__create/adapter';
@@ -279,4 +278,4 @@ app.use(async (c) => {
   return handler(c.req.raw);
 });
 
-export default handle(app);
+export default app.fetch;
