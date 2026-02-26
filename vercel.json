@@ -1,5 +1,4 @@
 {
-  "installCommand": "cd apps/web && npm install --legacy-peer-deps --include=dev",
-  "buildCommand": "cd apps/web && npm run build",
-  "framework": null
+  "installCommand": "npm install --legacy-peer-deps --include=dev",
+  "buildCommand": "npm run build"
 }
