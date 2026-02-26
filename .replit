@@ -1,0 +1,23 @@
+modules = ["nodejs-20"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-lc", "cd apps/web && npm install --legacy-peer-deps && npm run build && PORT=$PORT npm run start"]
+deploymentTarget = "autoscale"
+
+[[ports]]
+localPort = 3000
+externalPort = 80
+
+[workflows]
+runButton = "Start"
+
+[[workflows.workflow]]
+name = "Start"
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/web && npm install --legacy-peer-deps && npm run dev"
