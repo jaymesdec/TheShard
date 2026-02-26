@@ -51,6 +51,8 @@ function buildRouteTree(dir: string, basePath = ''): Tree {
 		const stat = statSync(filePath);
 
 		if (stat.isDirectory()) {
+			// Skip the api directory — API routes are served by Hono, not React Router
+			if (basePath === '' && file === 'api') continue;
 			const childPath = basePath ? `${basePath}/${file}` : file;
 			const childNode = buildRouteTree(filePath, childPath);
 			node.children.push(childNode);
