@@ -12,7 +12,7 @@ import Credentials from '@auth/core/providers/credentials';
 import Google from '@auth/core/providers/google';
 import { authHandler, initAuthConfig } from '@hono/auth-js';
 import { Pool, neonConfig } from '@neondatabase/serverless';
-import { hash, verify } from 'argon2';
+import bcrypt from 'bcryptjs';
 import { Hono } from 'hono';
 import { contextStorage } from 'hono/context-storage';
 import { cors } from 'hono/cors';
@@ -139,7 +139,7 @@ if (process.env.AUTH_SECRET) {
               matchingAccount?.password || matchingAccount?.extraData?.password;
             if (!accountPassword) return null;
 
-            return (await verify(accountPassword, password)) ? user : null;
+            return (await bcrypt.compare(password, accountPassword)) ? user : null;
           },
         }),
         Credentials({
@@ -178,7 +178,7 @@ if (process.env.AUTH_SECRET) {
             if (!newUser) return null;
 
             await adapter.linkAccount?.({
-              extraData: { password: await hash(password) },
+              extraData: { password: await bcrypt.hash(password, 10) },
               type: 'credentials' as any,
               userId: newUser.id,
               providerAccountId: newUser.id,

@@ -89,10 +89,7 @@ export default defineConfig(({ isSsrBuild }) => ({
   // serverless function is self-contained (no node_modules needed at runtime).
   // Native modules like argon2 must stay external and be copied manually.
   ssr: isVercel
-    ? {
-        noExternal: true,
-        external: ['argon2'],
-      }
+    ? { noExternal: true }
     : undefined,
   build: {
     rollupOptions:
