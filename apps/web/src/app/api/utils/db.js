@@ -340,29 +340,19 @@ export const db = {
     update: async (todoId, data) => {
       if (usePostgres) {
         await ensureSchema();
-        const updates = [];
-        const values = [];
 
-        if (typeof data.completed === 'boolean') {
-          updates.push('completed = $1');
-          values.push(data.completed);
-        }
+        const rows = await sql`
+          UPDATE app_todos
+          SET
+            completed = COALESCE(${typeof data.completed === 'boolean' ? data.completed : null}, completed),
+            title = COALESCE(${data.title ?? null}, title),
+            due_date = COALESCE(${data.due_date ?? null}, due_date),
+            assigned_to = COALESCE(${data.assigned_to ? JSON.stringify(data.assigned_to) : null}::jsonb, assigned_to)
+          WHERE id = ${todoId}
+          RETURNING *
+        `;
 
-        if (updates.length === 0) {
-          const rows = await sql`SELECT * FROM app_todos WHERE id = ${todoId} LIMIT 1`;
-          return rows[0] ? mapPgTodo(rows[0]) : null;
-        }
-
-        // simple single-field update path
-        if (typeof data.completed === 'boolean') {
-          const rows = await sql`
-            UPDATE app_todos
-            SET completed = ${data.completed}
-            WHERE id = ${todoId}
-            RETURNING *
-          `;
-          return rows[0] ? mapPgTodo(rows[0]) : null;
-        }
+        return rows[0] ? mapPgTodo(rows[0]) : null;
       }
 
       const store = readDb();
@@ -475,6 +465,53 @@ export const db = {
       store.notes.push(newNote);
       writeDb(store);
       return newNote;
+    },
+
+    update: async (noteId, data) => {
+      if (usePostgres) {
+        await ensureSchema();
+        const rows = await sql`
+          UPDATE app_notes
+          SET content = COALESCE(${data.content ?? null}, content)
+          WHERE id = ${noteId}
+          RETURNING *
+        `;
+        return rows[0] || null;
+      }
+
+      const store = readDb();
+      const index = (store.notes || []).findIndex(n => n.id === noteId);
+      if (index === -1) return null;
+      const updated = { ...store.notes[index], ...data };
+      store.notes[index] = updated;
+      writeDb(store);
+      return updated;
+    },
+
+    checkAccess: async (userId, noteId) => {
+      if (usePostgres) {
+        await ensureSchema();
+        const rows = await sql`
+          SELECT n.id, n.created_by, n.group_id,
+                 EXISTS(
+                   SELECT 1 FROM app_group_members gm
+                   WHERE gm.group_id = n.group_id AND gm.user_id = ${userId}
+                 ) AS is_member
+          FROM app_notes n
+          WHERE n.id = ${noteId}
+          LIMIT 1
+        `;
+        const note = rows[0];
+        if (!note) return false;
+        if (!note.group_id) return note.created_by === userId;
+        return !!note.is_member;
+      }
+
+      const store = readDb();
+      const note = (store.notes || []).find(n => n.id === noteId);
+      if (!note) return false;
+      if (!note.group_id) return note.created_by === userId;
+      return !!(store.group_members || []).find(m => m.group_id === note.group_id && m.user_id === userId);
     },
 
     delete: async (noteId) => {

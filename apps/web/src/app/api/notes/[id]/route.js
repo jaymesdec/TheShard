@@ -1,7 +1,36 @@
-import sql from "@/app/api/utils/sql";
+import { db } from "@/app/api/utils/db";
 import { auth } from "@/auth";
 
-export async function DELETE(request, { params }) {
+export async function PATCH(request, { params }) {
+  try {
+    const session = await auth();
+    if (!session || !session.user?.id) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const noteId = params.id;
+    const userId = session.user.id;
+    const body = await request.json();
+    const { content } = body;
+
+    if (!content || !content.trim()) {
+      return Response.json({ error: "Content is required" }, { status: 400 });
+    }
+
+    const hasAccess = await db.notes.checkAccess(userId, noteId);
+    if (!hasAccess) {
+      return Response.json({ error: "Note not found or access denied" }, { status: 403 });
+    }
+
+    const note = await db.notes.update(noteId, { content: content.trim() });
+    return Response.json({ note });
+  } catch (error) {
+    console.error("Error updating note:", error);
+    return Response.json({ error: "Failed to update note" }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request, { params }) {
   try {
     const session = await auth();
     if (!session || !session.user?.id) {
@@ -11,23 +40,12 @@ export async function DELETE(request, { params }) {
     const noteId = params.id;
     const userId = session.user.id;
 
-    // Check if user has access to this note (via group membership)
-    const noteCheck = await sql`
-      SELECT n.id 
-      FROM notes n
-      INNER JOIN group_members gm ON n.group_id = gm.group_id
-      WHERE n.id = ${noteId} AND gm.user_id = ${userId}
-    `;
-
-    if (noteCheck.length === 0) {
-      return Response.json(
-        { error: "Note not found or access denied" },
-        { status: 403 },
-      );
+    const hasAccess = await db.notes.checkAccess(userId, noteId);
+    if (!hasAccess) {
+      return Response.json({ error: "Note not found or access denied" }, { status: 403 });
     }
 
-    await sql`DELETE FROM notes WHERE id = ${noteId}`;
-
+    await db.notes.delete(noteId);
     return Response.json({ success: true });
   } catch (error) {
     console.error("Error deleting note:", error);
