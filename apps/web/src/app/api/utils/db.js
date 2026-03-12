@@ -53,11 +53,24 @@ const ensureSchema = async () => {
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
 
+  await sql`CREATE TABLE IF NOT EXISTS app_group_invitations (
+    id TEXT PRIMARY KEY,
+    group_id TEXT NOT NULL REFERENCES app_groups(id) ON DELETE CASCADE,
+    invited_email TEXT NOT NULL,
+    invited_by TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    responded_at TIMESTAMPTZ NULL
+  )`;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_app_group_invitations_invited_email ON app_group_invitations(invited_email)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_app_group_invitations_status ON app_group_invitations(status)`;
+
   schemaReady = true;
 };
 
 const readDb = () => {
-  if (!fs.existsSync(DB_PATH)) return { users: [], groups: [], group_members: [], todos: [], notes: [], messages: [] };
+  if (!fs.existsSync(DB_PATH)) return { users: [], groups: [], group_members: [], group_invitations: [], todos: [], notes: [], messages: [] };
   const data = fs.readFileSync(DB_PATH, 'utf-8');
   return JSON.parse(data);
 };
@@ -243,6 +256,128 @@ export const db = {
       const store = readDb();
       return (store.users || []).filter(u => u.email && u.email.toLowerCase().includes(emailQuery.toLowerCase()));
     }
+  },
+
+  invitations: {
+    create: async ({ groupId, invitedEmail, invitedBy }) => {
+      const email = invitedEmail.trim().toLowerCase();
+      if (usePostgres) {
+        await ensureSchema();
+
+        const existing = await sql`
+          SELECT id FROM app_group_invitations
+          WHERE group_id = ${groupId}
+            AND invited_email = ${email}
+            AND status = 'pending'
+          LIMIT 1
+        `;
+        if (existing[0]) return { id: existing[0].id, alreadyExists: true };
+
+        const id = generateId();
+        const rows = await sql`
+          INSERT INTO app_group_invitations (id, group_id, invited_email, invited_by)
+          VALUES (${id}, ${groupId}, ${email}, ${invitedBy})
+          RETURNING *
+        `;
+        return { ...rows[0], alreadyExists: false };
+      }
+
+      const store = readDb();
+      store.group_invitations = store.group_invitations || [];
+      const found = store.group_invitations.find(
+        (i) => i.group_id === groupId && i.invited_email === email && i.status === "pending",
+      );
+      if (found) return { ...found, alreadyExists: true };
+
+      const invitation = {
+        id: generateId(),
+        group_id: groupId,
+        invited_email: email,
+        invited_by: invitedBy,
+        status: "pending",
+        created_at: new Date().toISOString(),
+        responded_at: null,
+      };
+      store.group_invitations.push(invitation);
+      writeDb(store);
+      return { ...invitation, alreadyExists: false };
+    },
+
+    listForEmail: async (email) => {
+      const normalized = email.trim().toLowerCase();
+      if (usePostgres) {
+        await ensureSchema();
+        const rows = await sql`
+          SELECT i.*, g.name AS group_name
+          FROM app_group_invitations i
+          JOIN app_groups g ON g.id = i.group_id
+          WHERE i.invited_email = ${normalized}
+            AND i.status = 'pending'
+          ORDER BY i.created_at DESC
+        `;
+        return rows;
+      }
+
+      const store = readDb();
+      return (store.group_invitations || [])
+        .filter((i) => i.invited_email === normalized && i.status === "pending")
+        .map((i) => ({
+          ...i,
+          group_name: (store.groups || []).find((g) => g.id === i.group_id)?.name || "Unknown group",
+        }));
+    },
+
+    accept: async ({ invitationId, userId, userEmail }) => {
+      const normalized = userEmail.trim().toLowerCase();
+      if (usePostgres) {
+        await ensureSchema();
+        const rows = await sql`
+          SELECT * FROM app_group_invitations
+          WHERE id = ${invitationId}
+          LIMIT 1
+        `;
+        const invite = rows[0];
+        if (!invite) throw new Error("Invitation not found");
+        if (invite.status !== "pending") throw new Error("Invitation already handled");
+        if ((invite.invited_email || "").toLowerCase() !== normalized) throw new Error("Invitation email mismatch");
+
+        await sql`
+          INSERT INTO app_group_members (id, group_id, user_id)
+          VALUES (${generateId()}, ${invite.group_id}, ${userId})
+          ON CONFLICT (group_id, user_id) DO NOTHING
+        `;
+
+        await sql`
+          UPDATE app_group_invitations
+          SET status = 'accepted', responded_at = NOW()
+          WHERE id = ${invitationId}
+        `;
+        return { success: true, groupId: invite.group_id };
+      }
+
+      const store = readDb();
+      store.group_invitations = store.group_invitations || [];
+      const invite = store.group_invitations.find((i) => i.id === invitationId);
+      if (!invite) throw new Error("Invitation not found");
+      if (invite.status !== "pending") throw new Error("Invitation already handled");
+      if ((invite.invited_email || "").toLowerCase() !== normalized) throw new Error("Invitation email mismatch");
+
+      store.group_members = store.group_members || [];
+      const exists = store.group_members.find((m) => m.group_id === invite.group_id && m.user_id === userId);
+      if (!exists) {
+        store.group_members.push({
+          id: generateId(),
+          group_id: invite.group_id,
+          user_id: userId,
+          joined_at: new Date().toISOString(),
+        });
+      }
+
+      invite.status = "accepted";
+      invite.responded_at = new Date().toISOString();
+      writeDb(store);
+      return { success: true, groupId: invite.group_id };
+    },
   },
 
   todos: {

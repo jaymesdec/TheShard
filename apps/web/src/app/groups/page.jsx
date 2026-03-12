@@ -11,10 +11,10 @@ export default function GroupsPage() {
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [searchEmail, setSearchEmail] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [inviteEmail, setInviteEmail] = useState("");
 
   const [isSearching, setIsSearching] = useState(false);
   const [message, setMessage] = useState("");
-  const chatEndRef = useState(null)[1]; // Ref for scrolling to bottom
 
   // Fetch groups
   const { data: groupsData } = useQuery({
@@ -60,6 +60,18 @@ export default function GroupsPage() {
 
   const messages = messagesData?.messages || [];
 
+  const { data: invitationsData } = useQuery({
+    queryKey: ["groupInvitations"],
+    queryFn: async () => {
+      const response = await fetch("/api/groups/invitations");
+      if (!response.ok) throw new Error("Failed to fetch invitations");
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
+  const invitations = invitationsData?.invitations || [];
+
   // Create group mutation
   const createGroupMutation = useMutation({
     mutationFn: async (name) => {
@@ -99,6 +111,41 @@ export default function GroupsPage() {
       setSearchResults([]);
     },
 
+  });
+
+  const inviteByEmailMutation = useMutation({
+    mutationFn: async ({ groupId, email }) => {
+      const response = await fetch(`/api/groups/${groupId}/invitations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to invite member");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      setInviteEmail("");
+      queryClient.invalidateQueries({ queryKey: ["groupInvitations"] });
+    },
+  });
+
+  const acceptInvitationMutation = useMutation({
+    mutationFn: async (inviteId) => {
+      const response = await fetch(`/api/groups/invitations/${inviteId}/accept`, {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Failed to accept invitation");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      queryClient.invalidateQueries({ queryKey: ["groupInvitations"] });
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+    },
   });
 
   // Send message mutation
@@ -151,6 +198,18 @@ export default function GroupsPage() {
   const handleAddMember = (userId) => {
     if (!selectedGroupId) return;
     addMemberMutation.mutate({ groupId: selectedGroupId, userId });
+  };
+
+  const handleInviteByEmail = () => {
+    if (!selectedGroupId || !inviteEmail.trim()) return;
+    inviteByEmailMutation.mutate({
+      groupId: selectedGroupId,
+      email: inviteEmail.trim().toLowerCase(),
+    });
+  };
+
+  const handleAcceptInvite = (inviteId) => {
+    acceptInvitationMutation.mutate(inviteId);
   };
 
   // Format info
@@ -235,6 +294,30 @@ export default function GroupsPage() {
           )}
         </div>
 
+        {/* Pending Invitations */}
+        {invitations.length > 0 && (
+          <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
+            <h2 className="text-xl font-semibold mb-4">Group Invitations</h2>
+            <div className="space-y-3">
+              {invitations.map((invite) => (
+                <div key={invite.id} className="border border-gray-200 rounded-lg p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-800">{invite.group_name}</p>
+                    <p className="text-sm text-gray-500">Invited to join with {user.email}</p>
+                  </div>
+                  <button
+                    onClick={() => handleAcceptInvite(invite.id)}
+                    disabled={acceptInvitationMutation.isLoading}
+                    className="px-4 py-2 bg-[#2563FF] text-white rounded-lg font-medium hover:bg-[#2E69DE] disabled:opacity-50"
+                  >
+                    {acceptInvitationMutation.isLoading ? "Accepting..." : "Accept"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Existing Groups */}
         <div className="bg-white rounded-2xl p-6 shadow-lg">
           <h2 className="text-xl font-semibold mb-4">Your Groups</h2>
@@ -307,6 +390,37 @@ export default function GroupsPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Invite by Gmail */}
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-gray-600 mb-3">
+                Invite by Gmail
+              </h3>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="email"
+                  placeholder="name@gmail.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleInviteByEmail()}
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-[#2563FF] focus:ring-1 focus:ring-[#2563FF]"
+                />
+                <button
+                  onClick={handleInviteByEmail}
+                  disabled={!inviteEmail.trim() || inviteByEmailMutation.isLoading}
+                  className="px-6 py-3 bg-[#2563FF] text-white rounded-lg font-medium hover:bg-[#2E69DE] disabled:opacity-50"
+                >
+                  {inviteByEmailMutation.isLoading ? "Inviting..." : "Send Invite"}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500">The invited person can accept from their own account on another device.</p>
+              {inviteByEmailMutation.isError && (
+                <p className="text-xs text-red-600 mt-2">{inviteByEmailMutation.error?.message || "Failed to send invite"}</p>
+              )}
+              {inviteByEmailMutation.isSuccess && (
+                <p className="text-xs text-green-600 mt-2">Invitation sent.</p>
+              )}
             </div>
 
             {/* Add New Member */}
