@@ -113,6 +113,16 @@ export default function GroupsPage() {
 
   });
 
+  const parseJsonSafely = async (response) => {
+    const text = await response.text();
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { raw: text };
+    }
+  };
+
   const inviteByEmailMutation = useMutation({
     mutationFn: async ({ groupId, email }) => {
       const response = await fetch(`/api/groups/${groupId}/invitations`, {
@@ -120,11 +130,11 @@ export default function GroupsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const data = await response.json();
+      const data = await parseJsonSafely(response);
       if (!response.ok) {
-        throw new Error(data?.error || "Failed to invite member");
+        throw new Error(data?.error || data?.raw || "Failed to invite member");
       }
-      return data;
+      return data || {};
     },
     onSuccess: () => {
       setInviteEmail("");
@@ -137,9 +147,11 @@ export default function GroupsPage() {
       const response = await fetch(`/api/groups/invitations/${inviteId}/accept`, {
         method: "POST",
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || "Failed to accept invitation");
-      return data;
+      const data = await parseJsonSafely(response);
+      if (!response.ok) {
+        throw new Error(data?.error || data?.raw || "Failed to accept invitation");
+      }
+      return data || {};
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
