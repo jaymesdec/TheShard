@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!-- This took very long and honestly I do not know if the game will function. I have spent 2 days and I haven't managed to fix the game as far as I know.
+The AI has been helpful, but from next time onwards I will be using AI to write the prompts-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Empire Idle - Fully Integrated</title>
+<style>
+/* ===== GLOBAL STYLES ===== */
+body { margin:0; font-family: 'Orbitron', sans-serif; background: linear-gradient(135deg,#6a11cb,#2575fc); color:white; text-align:center; }
+button{cursor:pointer;}
+
+/* HOME PANEL */
+#home{display:block; padding:40px 30px; background: rgba(0,0,0,0.7); border-radius:20px; max-width:900px; margin:40px auto; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.8); position:relative; overflow:hidden;}
+.homeStat:hover{ transform: translateY(-5px) scale(1.05); transition: transform 0.2s; background: rgba(255,255,255,0.2); }
+button:hover{ transform: translateY(-3px) scale(1.05); transition: transform 0.2s; }
+.floating{ position: absolute; font-size:20px; font-weight:bold; pointer-events:none; animation: floatUp 1s ease-out forwards; text-shadow: 0 0 5px #fff, 0 0 10px #fff; }
+@keyframes floatUp{0%{transform: translateY(0px) scale(1); opacity:1;}100%{transform: translateY(-80px) scale(1.5); opacity:0;}}
+
+/* FACTORIES */
+.factory{flex:1 1 200px; max-width:250px; min-width:200px; border-radius:20px; border:3px solid #888; padding:25px; box-shadow:5px 5px 20px rgba(0,0,0,0.7); text-align:center; transition: transform 0.2s, box-shadow 0.2s; cursor:pointer; margin:10px; display:inline-block; background:linear-gradient(145deg,#76ff03,#388e3c); color:black;}
+.factory:hover{transform:scale(1.05); box-shadow:8px 8px 30px rgba(0,0,0,0.9);}
+.factory button{margin-top:10px; padding:10px 16px; font-weight:bold; border:none; border-radius:12px; cursor:pointer; background: linear-gradient(135deg,#ff9d00,#ff5722); color:white; transition: transform 0.15s;}
+.factory button:hover{transform:scale(1.05);}
+#factoryPopup{position:fixed; display:none; pointer-events:none; background: linear-gradient(135deg,#ffeb3b,#f44336); color:black; padding:20px; border-radius:20px; box-shadow:0 0 25px rgba(0,0,0,0.8); width:300px; opacity:0; transition:opacity 0.15s;}
+
+/* WORKERS */
+#workerUI{display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:10px;}
+#workerUI .panel{flex:1 0 180px; max-width:220px; min-width:160px; padding:12px; border-radius:12px; background: linear-gradient(135deg, #6a11cb, #2575fc); color:white; text-align:center; box-shadow:3px 3px 10px rgba(0,0,0,0.5); transition: transform 0.2s, box-shadow 0.2s;}
+#workerUI button{margin-top:6px; padding:6px 12px; font-weight:bold; border-radius:8px; border:none; cursor:pointer; background: linear-gradient(45deg,#FF8C00,#FFA500); color:white; box-shadow:2px 2px 6px rgba(0,0,0,0.4); transition: transform 0.2s, box-shadow 0.2s;}
+
+/* MAP */
+#map{display:grid; grid-template-columns:repeat(10,60px); grid-auto-rows:60px; gap:2px; justify-content:center; margin-top:20px; position:relative;}
+.tile{position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:10px; text-align:center; border-radius:6px; border:2px solid #222; cursor:pointer; transition: all 0.5s ease;}
+.tile:hover{transform:translateY(-5px) scale(1.05); box-shadow:0 6px 15px rgba(0,0,0,0.6);}
+.tile.zoomed{position:fixed !important; width:300px !important; height:300px !important; font-size:16px !important; top:50%; left:50%; transform: translate(-50%,-50%); z-index:100; box-shadow:0 10px 25px rgba(0,0,0,0.8);}
+.tile.dimmed{opacity:0.3; pointer-events:none; transition:0.5s;}
+.plains{background: linear-gradient(145deg,#a8d08d,#6aa84f);}
+.forest{background: linear-gradient(145deg,#2e7d32,#1b5e20);}
+.mountain{background: linear-gradient(145deg,#8d8d8d,#555555);}
+.desert{background: linear-gradient(145deg,#f4e1a1,#d9c175);}
+.water{background: linear-gradient(145deg,#42a5f5,#1565c0); cursor:default;}
+.ownedOverlay{position:absolute; top:0; left:0; width:100%; height:100%; border-radius:6px; background-color: rgba(76,175,80,0.5); pointer-events:none;}
+.enemyOverlay{position:absolute; top:0; left:0; width:100%; height:100%; border-radius:6px; background-color: rgba(229,57,53,0.5); pointer-events:none;}
+.neutralOverlay{position:absolute; top:0; left:0; width:100%; height:100%; border-radius:6px; background-color: rgba(33,150,243,0.5); pointer-events:none;}
+.islandOverlay{position:absolute; top:0; left:0; width:100%; height:100%; border-radius:6px; background-color: rgba(33,150,243,0.5); border:2px dashed yellow; pointer-events:none;}
+.conquering{animation:conquerAnim 1s ease forwards;}
+@keyframes conquerAnim{0%{background-color: rgba(229,57,53,0.5);}50%{background-color: rgba(255,235,59,0.5);}100%{background-color: rgba(76,175,80,0.5);}}
+</style>
+</head>
+<body>
+
+<h1>Empire Idle - Fully Integrated</h1>
+
+<!-- HOME PANEL -->
+<div id="home">
+  <h2>Empire Control Center</h2>
+  <p>Mine resources, refine jewels, and manage your empire!</p>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap:15px; margin-bottom:30px;">
+    <div class="homeStat">Coins: <span id="homeCoin">50</span></div>
+    <div class="homeStat">Jewels: <span id="homeJewel">0</span></div>
+    <div class="homeStat">Mined: <span id="homeMined">0</span></div>
+    <div class="homeStat">Unmined: <span id="homeUnmined">0</span></div>
+    <div class="homeStat">Net Worth: $<span id="homeNetWorth">50</span></div>
+    <div class="homeStat">Coin/sec: <span id="homeCoinPerSec">0</span></div>
+    <div class="homeStat">Prestige Points: <span id="homePrestigePoints">0</span></div>
+    <div class="homeStat">Prestige Multiplier: <span id="homePrestigeMultiplier">1</span>x</div>
+  </div>
+  <div style="display:flex; justify-content:center; gap:25px; flex-wrap:wrap;">
+    <button id="mineBtn">⛏ Mine</button>
+    <button id="refineBtn">💎 Refine</button>
+  </div>
+</div>
+
+<!-- WORKER UI -->
+<div id="workerUI"></div>
+
+<!-- FACTORIES -->
+<div id="factories"></div>
+<div id="factoryPopup"></div>
+
+<!-- MAP -->
+<div id="map"></div>
+<button id="zoomOutGlobal" onclick="zoomOut()" style="display:none;">Zoom Out</button>
+
+<script>
+// ================= CORE VARIABLES =================
+let coins = 50, jewels = 0, minedResources = 0, unminedResources = 0;
+let prestigePoints = 0, prestigeMultiplier = 1;
+let coinValue = 1, army = 20, activeBuffs = [], eventMultiplier = 1, eventTimer = 0;
+
+// ================= WORKERS =================
+let workerTiers = [ {name:'Worker', count:0, cost:100, boost:0, cap:25, softCap:100} ];
+function calculateProduction(){ return workerTiers[0].count; }
+function updateDynamicUI(){
+  const container = document.getElementById('workerUI'); container.innerHTML='';
+  workerTiers.forEach((t,i)=>{
+    let p = document.createElement('div'); p.className='panel';
+    p.innerHTML=`<h4>${t.name}</h4><p>${t.count} / ${t.cap}</p><p>Cost:${t.cost}</p>`;
+    let b = document.createElement('button'); b.innerText='Buy '+t.name; b.onclick=()=>{if(coins>=t.cost){coins-=t.cost;t.count++; t.cost=Math.floor(t.cost*1.5);} updateDynamicUI();};
+    p.appendChild(b); container.appendChild(p);
+  });
+}
+setInterval(updateDynamicUI,1000);
+
+// ================= HOME BUTTONS =================
+document.getElementById('mineBtn').onclick = e=>{ minedResources+=1; coins+=1; floatEffect('💰','#ffd700',e); };
+document.getElementById('refineBtn').onclick = e=>{ if(minedResources>0){ minedResources--; jewels++; floatEffect('💎','#00ffea',e); } };
+function floatEffect(symbol,color,event){ let f=document.createElement('div'); f.className='floating'; f.innerText=symbol; f.style.color=color; f.style.left=event.pageX+'px'; f.style.top=event.pageY+'px'; document.body.appendChild(f); setTimeout(()=>f.remove(),1000); }
+
+function updateHomeStats(){
+  document.getElementById('homeCoin').innerText=Math.floor(coins);
+  document.getElementById('homeJewel').innerText=jewels;
+  document.getElementById('homeMined').innerText=minedResources;
+  document.getElementById('homeUnmined').innerText=unminedResources;
+  document.getElementById('homeNetWorth').innerText=Math.floor(coins+jewels*100);
+  document.getElementById('homeCoinPerSec').innerText=calculateProduction().toFixed(2);
+  document.getElementById('homePrestigePoints').innerText=prestigePoints;
+  document.getElementById('homePrestigeMultiplier').innerText=prestigeMultiplier.toFixed(2);
+}
+setInterval(updateHomeStats,300);
+
+// ================= MAP =================
+let lands=[];
+function generateMap(){const map=document.getElementById('map'); map.innerHTML='';
+for(let i=0;i<100;i++){let tile=document.createElement('div');tile.className='tile plains';tile.dataset.resources=1000;tile.dataset.army=10;tile.onclick=()=>{if(tile.dataset.owner!=='owned'){tile.dataset.owner='owned'; minedResources+=parseInt(tile.dataset.resources); updateHomeStats();}}; map.appendChild(tile); lands.push(tile);}}
+generateMap();
+function zoomOut(){ lands.forEach(t=>t.classList.remove('zoomed','dimmed')); document.getElementById('zoomOutGlobal').style.display='none';}
+</script>
+</body>
+</html>

@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>SPACE INVADER CLICKER</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --green: #00ff88;
+  --cyan: #00eeff;
+  --red: #ff3355;
+  --yellow: #ffee00;
+  --orange: #ff8800;
+  --purple: #cc44ff;
+  --bg: #000a0a;
+  --panel: #020f0f;
+  --border: #004433;
+  --glow-green: 0 0 8px #00ff88, 0 0 20px #00ff8855;
+  --glow-cyan: 0 0 8px #00eeff, 0 0 20px #00eeff55;
+  --glow-red: 0 0 8px #ff3355, 0 0 20px #ff335555;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--green);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+/* CRT scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* CRT flicker */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0,255,136,0.01);
+  pointer-events: none;
+  z-index: 9998;
+  animation: flicker 8s infinite;
+}
+
+@keyframes flicker {
+  0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.94} 94%{opacity:1} 96%{opacity:0.97} 97%{opacity:1}
+}
+
+h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--green);
+  text-shadow: var(--glow-green);
+  letter-spacing: 6px;
+  margin-bottom: 4px;
+  animation: titlePulse 3s ease-in-out infinite;
+}
+
+@keyframes titlePulse {
+  0%,100%{ text-shadow: 0 0 8px #00ff88, 0 0 20px #00ff8855; }
+  50%{ text-shadow: 0 0 16px #00ff88, 0 0 40px #00ff88aa, 0 0 60px #00ff8833; }
+}
+
+.subtitle {
+  color: #006644;
+  letter-spacing: 4px;
+  margin-bottom: 12px;
+  font-size: 7px;
+}
+
+.game-wrapper {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) 1fr minmax(160px, 220px);
+  gap: 10px;
+  width: 100%;
+  max-width: 1440px;
+  align-items: stretch;
+}
+
+/* ---- PANELS ---- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 16px;
+  position: relative;
+  box-shadow: inset 0 0 20px rgba(0,255,136,0.03), 0 0 1px var(--green);
+}
+
+.panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,255,136,0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.panel-title {
+  color: var(--cyan);
+  text-shadow: var(--glow-cyan);
+  font-size: 9px;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---- STATS ---- */
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #001a11;
+  font-size: 9px;
+}
+
+.stat-label { color: #008855; }
+.stat-value {
+  color: var(--yellow);
+  text-shadow: 0 0 6px #ffee0088;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* ---- BUTTONS ---- */
+.btn {
+  display: block;
+  width: 100%;
+  padding: 10px 8px;
+  margin: 5px 0;
+  background: transparent;
+  border: 1px solid var(--green);
+  color: var(--green);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  cursor: pointer;
+  text-align: center;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.1s;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--green);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.15s;
+  z-index: 0;
+}
+
+.btn:hover::before { transform: scaleX(1); }
+.btn:hover { color: #000; text-shadow: none; }
+.btn span { position: relative; z-index: 1; }
+
+.btn:active { transform: scale(0.97); }
+
+.btn-shoot {
+  border-color: var(--yellow);
+  color: var(--yellow);
+  font-size: 9px;
+  padding: 10px;
+}
+.btn-shoot::before { background: var(--yellow); }
+
+.btn-laser {
+  border-color: var(--red);
+  color: var(--red);
+}
+.btn-laser::before { background: var(--red); }
+
+.btn-wave {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+.btn-wave::before { background: var(--purple); }
+
+.btn-gain {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+.btn-gain::before { background: var(--cyan); }
+
+/* ---- CANVAS AREA ---- */
+.canvas-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.side-col .panel {
+  flex: 1;
+}
+
+.side-col .panel.grow {
+  flex: 2;
+}
+
+canvas {
+  background: #000;
+  border: 1px solid var(--border);
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  box-shadow: 0 0 0 1px #001a11, 0 0 30px rgba(0,255,136,0.08);
+}
+
+/* ---- SHOP ---- */
+.shop-item {
+  background: transparent;
+  border: 1px solid #003322;
+  color: var(--green);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  cursor: pointer;
+  padding: 10px;
+  width: 100%;
+  text-align: left;
+  margin: 4px 0;
+  transition: all 0.1s;
+  line-height: 1.8;
+}
+
+.shop-item:hover {
+  border-color: var(--green);
+  background: rgba(0,255,136,0.05);
+  box-shadow: var(--glow-green);
+}
+
+.shop-item:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.shop-item .item-name { color: var(--cyan); }
+.shop-item .item-cost { color: var(--yellow); }
+.shop-item .item-level { color: #006644; }
+
+/* ---- WAVE INDICATOR ---- */
+.wave-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 8px;
+}
+
+.wave-num {
+  color: var(--purple);
+  text-shadow: 0 0 8px #cc44ff88;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 14px;
+}
+
+/* ---- NOTIFICATION ---- */
+#notif {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,20,15,0.95);
+  border: 1px solid var(--green);
+  padding: 8px 20px;
+  font-size: 9px;
+  color: var(--yellow);
+  text-shadow: 0 0 6px #ffee00;
+  box-shadow: var(--glow-green);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 1000;
+  letter-spacing: 2px;
+}
+
+#notif.show { opacity: 1; }
+
+/* ---- INVENTORY ---- */
+#inventoryPanel {
+  display: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 10px;
+  margin-top: 8px;
+}
+
+/* ---- LASER COST WARNING ---- */
+.laser-info {
+  font-size: 7px;
+  color: #ff3355aa;
+  margin: 3px 0 6px;
+  letter-spacing: 1px;
+}
+
+/* Pixel flash on kill */
+@keyframes screenFlash {
+  0%{ background: rgba(255,200,0,0.07); }
+  100%{ background: transparent; }
+}
+.flash { animation: screenFlash 0.1s ease-out; }
+
+/* Bottom bar */
+.bottom-bar {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+.bottom-bar .btn { font-size: 7px; }
+
+.controls-hint {
+  font-size: 10px;
+  color: #006644;
+  letter-spacing: 2px;
+  text-align: center;
+  margin-top: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>SPACE INVADERS</h1>
+<div class="subtitle">▸ CLICKER EDITION ◂</div>
+
+<div id="notif">+ KILL</div>
+
+<div class="game-wrapper">
+
+  <!-- LEFT PANEL: Stats + Actions -->
+  <div class="side-col">
+    <div class="panel">
+      <div class="panel-title">▸ SYSTEMS</div>
+      <div class="stat-row"><span class="stat-label">CREDITS</span><span class="stat-value" id="money">0</span></div>
+      <div class="stat-row"><span class="stat-label">AMMO</span><span class="stat-value" id="bullets">0</span></div>
+      <div class="stat-row"><span class="stat-label">DAMAGE</span><span class="stat-value" id="damage">1</span></div>
+      <div class="stat-row"><span class="stat-label">AMO/CLK</span><span class="stat-value" id="bpc">1</span></div>
+    </div>
+
+    <div class="panel grow">
+      <div class="panel-title">▸ CONTROLS</div>
+      <button class="btn btn-gain" onclick="gainBullets()"><span>▶ +1 AMMO</span></button>
+      <button class="btn btn-shoot" onclick="shoot()"><span>⚡ FIRE!</span></button>
+      <div class="laser-info">LASER: <span id="laserCost">0</span> AMO</div>
+      <button class="btn btn-laser" onclick="laser()"><span>☢ LASER</span></button>
+      <button class="btn btn-wave" onclick="startWave()"><span>⚠ NEXT WAVE</span></button>
+      <div style="height:10px;"></div>
+      <div class="bottom-bar">
+        <button class="btn" style="font-size:6px;" onclick="toggleInventory()"><span>INV</span></button>
+        <button class="btn" style="font-size:6px;border-color:#ff3355;color:#ff3355;" onclick="newGame()"><span>RESET</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: Canvas -->
+  <div class="canvas-section">
+    <div class="wave-bar">
+      <span style="color:#006644;font-size:7px;letter-spacing:2px;">WAVE</span>
+      <span class="wave-num" id="waveNum">0</span>
+      <span style="flex:1"></span>
+      <span style="color:#006644;font-size:7px;">← → MOVE &nbsp; SPACE FIRE</span>
+    </div>
+    <canvas id="game" width="900" height="560"></canvas>
+    <div id="inventoryPanel">
+      <div class="panel-title">▸ INVENTORY</div>
+      <div id="inventoryList" style="color:#006644;font-size:8px;">EMPTY</div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL: Shop + Health -->
+  <div class="side-col">
+    <div class="panel grow">
+      <div class="panel-title">▸ UPGRADE SHOP</div>
+      <div id="shop"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">▸ HULL INTEGRITY</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:7px;color:#008855;">HP</span>
+        <span id="hpText" style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:11px;color:#ff3355;text-shadow:0 0 6px #ff335588;">100 / 100</span>
+      </div>
+      <div style="background:#0a0000;border:1px solid #330011;height:14px;position:relative;overflow:hidden;">
+        <div id="hpBar" style="height:100%;width:100%;background:linear-gradient(90deg,#ff3355,#ff6644);transition:width 0.2s,background 0.3s;box-shadow:0 0 8px #ff335566;"></div>
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 18px,rgba(0,0,0,0.2) 18px,rgba(0,0,0,0.2) 19px);pointer-events:none;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="controls-hint">ARROW KEYS OR A/D TO MOVE SHIP • SPACE TO FIRE • CLICK BUTTONS TO UPGRADE</div>
+
+<script>
+/*
+I made a few changes in my game since my last iteration, I added boss levels, improved the buttons, added potions, improved the background, added a health bar and more. AI helped especially with the design portion of the game, I was unsure how to exactly fully describe the style that I wanted for the buttons and background but AI helped me design it. AI also helped me create most of the features like boss fights, buttons, potions and more. I came up with the idea of these things and the percentages that they would use but AI helped bring it to llife.
+*/
+let canvas = document.getElementById("game");
+let ctx = canvas.getContext("2d");
+const CW = 900, CH = 560; // canvas width/height
+
+let money = 0, bullets = 0, damage = 1, bulletsPerClick = 1, wave = 0;
+let enemies = [], enemyBullets = [], playerBullets = [], explosions = [], floatingTexts = [];
+let formationX = 80, formationDirection = 1;
+let starfield = [], inventory = [];
+
+let playerX = CW / 2 - 22, playerY = CH - 25, playerWidth = 44, playerHeight = 12;
+let moveLeft = false, moveRight = false;
+let shieldActive = false, shieldHP = 0;
+
+let autoClickerLevel = 0, damageUpgradeLevel = 0, bulletUpgradeLevel = 0, shieldLevel = 0, multishotLevel = 0;
+let autoClickerCost = 50, damageCost = 30, bulletCost = 20, shieldCost = 80, multishotCost = 35;
+let shotsPerFire = 1;
+
+let frameCount = 0;
+let screenFlash = 0;
+let playerHP = 100, playerMaxHP = 100, playerDead = false;
+let boss = null;
+let potions = [];
+
+// Active timed effects
+let moneyMultiplierActive = false, moneyMultiplierEnd = 0;
+let rapidFireActive = false, rapidFireEnd = 0;
+
+/* Starfield */
+for (let i = 0; i < 160; i++) {
+  starfield.push({
+    x: Math.random() * CW, y: Math.random() * CH,
+    speed: Math.random() * 0.8 + 0.1,
+    size: Math.random() < 0.15 ? 2 : 1,
+    bright: Math.random()
+  });
+}
+
+/* Nebula points */
+let nebula = [];
+for (let i = 0; i < 80; i++) {
+  nebula.push({ x: Math.random() * CW, y: Math.random() * CH, r: Math.random() * 40 + 10, hue: Math.random() < 0.5 ? 160 : 200 });
+}
+
+function drawAlien(x, y, type = 0) {
+  const colors = ['#00ff88', '#00eeff', '#ff8800'];
+  ctx.fillStyle = colors[type % 3];
+
+  if (type === 0) {
+    // Classic alien
+    ctx.fillRect(x+6,y,4,4); ctx.fillRect(x+12,y,4,4);
+    ctx.fillRect(x+2,y+4,16,4);
+    ctx.fillRect(x,y+8,4,4); ctx.fillRect(x+18,y+8,4,4);
+    ctx.fillRect(x+4,y+8,14,4);
+    ctx.fillRect(x+4,y+12,4,4); ctx.fillRect(x+14,y+12,4,4);
+  } else if (type === 1) {
+    // Crab alien
+    ctx.fillRect(x+2,y+2,18,4);
+    ctx.fillRect(x,y+6,22,4);
+    ctx.fillRect(x+4,y+10,14,4);
+    ctx.fillRect(x+2,y+14,4,2); ctx.fillRect(x+16,y+14,4,2);
+    ctx.fillRect(x,y+4,2,2); ctx.fillRect(x+20,y+4,2,2);
+  } else {
+    // Squid alien
+    ctx.fillRect(x+8,y,6,4);
+    ctx.fillRect(x+4,y+4,14,4);
+    ctx.fillRect(x+2,y+8,18,4);
+    ctx.fillRect(x,y+12,4,2); ctx.fillRect(x+6,y+12,4,2); ctx.fillRect(x+12,y+12,4,2); ctx.fillRect(x+18,y+12,4,2);
+  }
+}
+
+function drawPlayer(x, y) {
+  // Ship body
+  ctx.fillStyle = '#00eeff';
+  ctx.fillRect(x+18, y, 8, 4);
+  ctx.fillRect(x+12, y+4, 20, 4);
+  ctx.fillRect(x+4, y+8, 36, 4);
+  ctx.fillRect(x, y+10, 44, 4); // wings
+  // Engine glow
+  let gTime = frameCount * 0.1;
+  ctx.fillStyle = `rgba(0,238,255,${0.4 + 0.3 * Math.sin(gTime)})`;
+  ctx.fillRect(x+16, y+12, 12, 2);
+  // Thruster
+  ctx.fillStyle = `rgba(255,150,0,${0.6 + 0.4 * Math.sin(gTime * 1.5)})`;
+  ctx.fillRect(x+19, y+13, 6, 2 + Math.floor(Math.sin(gTime * 2) * 2));
+
+  // Shield
+  if (shieldActive && shieldHP > 0) {
+    ctx.strokeStyle = `rgba(0,238,255,${0.3 + 0.2 * Math.sin(frameCount * 0.1)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x + 22, y + 7, 30, 18, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function startWave() {
+  wave++;
+  enemies = [];
+  enemyBullets = [];
+  boss = null;
+  document.getElementById("waveNum").textContent = wave;
+  window._waveJustCleared = false;
+
+  // Boss every 10 waves
+  if (wave % 10 === 0) {
+    let bossHP = 500 + (wave / 10) * 400 + damageUpgradeLevel * 50;
+    let bossSpeed = 1.5 + (wave / 10) * 0.4;
+    boss = { x: CW/2 - 50, y: 40, hp: bossHP, maxHp: bossHP, vx: bossSpeed, phase: 1, shootTimer: 0, enraged: false };
+    notify("⚠ BOSS INCOMING! WAVE " + wave + " ⚠");
+    screenFlash = 30;
+    return;
+  }
+
+  // Progressive enemy scaling
+  let baseHP   = Math.max(3, 3 + wave * 2);                    // HP grows faster per wave
+  let rows     = Math.min(5, 2 + Math.floor(wave / 2));        // caps at 5 rows
+  let cols     = Math.min(12, 5 + Math.floor(wave / 1.5));     // caps at 12 cols
+  let spacing  = Math.max(44, 60 - wave * 0.8);                // enemies get closer together
+  let startY   = Math.max(20, 50 - wave * 1.5);                // formation creeps lower each wave
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      let hp = Math.floor(baseHP + r * 2 + Math.floor(wave / 5));
+      enemies.push({
+        x: formationX + c * spacing,
+        y: startY + r * 44,
+        hp, maxHp: hp,
+        type: r % 3
+      });
+    }
+  }
+  notify("WAVE " + wave + " INCOMING!");
+}
+
+function gainBullets() { bullets += bulletsPerClick; }
+
+function shoot() {
+  if (bullets < shotsPerFire) return;
+  bullets -= shotsPerFire;
+  let spd = rapidFireActive ? 14 : 7;
+  playerBullets.push({ x: playerX + 20, y: playerY, speed: spd });
+  if (shotsPerFire >= 2) playerBullets.push({ x: playerX + 10, y: playerY + 4, speed: spd });
+  if (shotsPerFire >= 3) playerBullets.push({ x: playerX + 30, y: playerY + 4, speed: spd });
+  if (shotsPerFire >= 4) playerBullets.push({ x: playerX + 5,  y: playerY + 8, speed: spd * 0.93 });
+  if (shotsPerFire >= 5) playerBullets.push({ x: playerX + 35, y: playerY + 8, speed: spd * 0.93 });
+}
+
+function laser() {
+  if (boss) {
+    // Laser does 10% of boss current HP
+    let dmg = Math.floor(boss.hp * 0.1);
+    let cost = Math.max(10, dmg * 2);
+    if (bullets < cost) { notify("NOT ENOUGH AMMO!"); return; }
+    bullets -= cost;
+    boss.hp -= dmg;
+    addFloatingText(boss.x + 40, boss.y + 30, "-" + dmg, "#ff8800");
+    notify("LASER HIT! -" + dmg + " BOSS HP");
+    screenFlash = 8;
+    if (boss.hp <= 0) defeatBoss();
+    return;
+  }
+  let totalHealth = enemies.reduce((sum, e) => sum + e.hp, 0);
+  let cost = Math.floor(totalHealth * 1.25);
+  if (bullets < cost) { notify("NOT ENOUGH AMMO!"); return; }
+  bullets -= cost;
+  let lateBonus = wave > 9 ? 1 + Math.floor(wave / 10) : 1;
+  let earned = enemies.length * (5 + wave * 2) * lateBonus * (moneyMultiplierActive ? 2 : 1);
+  enemies.forEach(e => { if (Math.random() < 0.15) spawnPotion(e.x, e.y); });
+  enemies = [];
+  money += earned;
+  notify("LASER CLEAR! +" + earned + " CR");
+  screenFlash = 10;
+}
+
+function defeatBoss() {
+  let bx = boss.x, by = boss.y;
+  boss = null;
+  money += 500;
+  playerHP = Math.min(playerHP + 50, playerMaxHP);
+  updateHPBar();
+  for (let i = 0; i < 20; i++) createExplosion(Math.random() * (CW - 100) + 50, Math.random() * 300 + 40);
+  // Boss always drops 3 mega potions
+  spawnPotion(bx + 10, by + 40, 'mega');
+  spawnPotion(bx + 45, by + 30, 'mega');
+  spawnPotion(bx + 80, by + 40, 'mega');
+  notify("BOSS DEFEATED! +500 CR +50 HP!");
+  screenFlash = 40;
+}
+
+function updateLaserCost() {
+  if (boss) {
+    let dmg = Math.floor(boss.hp * 0.1);
+    let cost = Math.max(10, dmg * 2);
+    document.getElementById("laserCost").textContent = cost + " (10% DMG)";
+    return;
+  }
+  let totalHealth = enemies.reduce((sum, e) => sum + e.hp, 0);
+  document.getElementById("laserCost").textContent = Math.floor(totalHealth * 1.25);
+}
+
+function drawHealth(enemy) {
+  let percent = enemy.hp / enemy.maxHp;
+  let barW = 22;
+  ctx.fillStyle = '#001a0d';
+  ctx.fillRect(enemy.x, enemy.y - 7, barW, 3);
+  ctx.fillStyle = percent > 0.5 ? '#00ff88' : percent > 0.25 ? '#ffee00' : '#ff3355';
+  ctx.fillRect(enemy.x, enemy.y - 7, barW * percent, 3);
+}
+
+function enemyShoot(enemy) {
+  let chance = 0.001 + wave * 0.0004;          // faster fire rate each wave
+  let bulletSpeed = 2 + wave * 0.15;            // bullets get faster each wave
+  if (Math.random() < chance) {
+    enemyBullets.push({ x: enemy.x + 11, y: enemy.y + 18, speed: bulletSpeed });
+  }
+}
+
+function createExplosion(x, y) {
+  for (let i = 0; i < 8; i++) {
+    explosions.push({
+      x: x + 10, y: y + 10,
+      vx: (Math.random() - 0.5) * 4,
+      vy: (Math.random() - 0.5) * 4,
+      life: 20 + Math.random() * 10,
+      maxLife: 30,
+      r: Math.random() * 4 + 1,
+      color: Math.random() < 0.5 ? '#ff8800' : '#ffee00'
+    });
+  }
+}
+
+function addFloatingText(x, y, text, color = '#ffee00') {
+  floatingTexts.push({ x, y, text, color, life: 40, vy: -0.8 });
+}
+
+function drawExplosions() {
+  explosions.forEach((e, i) => {
+    let alpha = e.life / e.maxLife;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = e.color;
+    ctx.beginPath();
+    ctx.arc(e.x + e.vx * (1 - alpha) * 10, e.y + e.vy * (1 - alpha) * 10, e.r, 0, Math.PI * 2);
+    ctx.fill();
+    e.life--;
+    if (e.life <= 0) explosions.splice(i, 1);
+  });
+  ctx.globalAlpha = 1;
+}
+
+function updateStars() {
+  // Nebula
+  nebula.forEach(n => {
+    let grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+    grad.addColorStop(0, `hsla(${n.hue},80%,40%,0.04)`);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(n.x - n.r, n.y - n.r, n.r * 2, n.r * 2);
+  });
+
+  starfield.forEach(s => {
+    s.y += s.speed;
+    if (s.y > CH) { s.y = 0; s.x = Math.random() * CW; }
+    let twinkle = 0.4 + 0.6 * Math.abs(Math.sin(frameCount * 0.05 + s.bright * 10));
+    ctx.globalAlpha = twinkle;
+    ctx.fillStyle = s.size > 1 ? '#aaffee' : '#ffffff';
+    ctx.fillRect(s.x, s.y, s.size, s.size);
+  });
+  ctx.globalAlpha = 1;
+}
+
+const shopItems = [
+  {
+    name: "AUTO FIRE", desc: "AUTO AMO/SEC",
+    getLevel: () => autoClickerLevel,
+    getCost: () => autoClickerCost,
+    canAfford: () => money >= autoClickerCost,
+    buy: () => { money -= autoClickerCost; autoClickerLevel++; autoClickerCost = Math.floor(autoClickerCost * 1.5); }
+  },
+  {
+    name: "DAMAGE UP", desc: "BULLET PWR",
+    getLevel: () => damageUpgradeLevel,
+    getCost: () => damageCost,
+    canAfford: () => money >= damageCost,
+    buy: () => { money -= damageCost; damage++; damageUpgradeLevel++; damageCost = Math.floor(damageCost * 1.6); }
+  },
+  {
+    name: "MORE AMMO", desc: "AMO/CLICK",
+    getLevel: () => bulletUpgradeLevel,
+    getCost: () => bulletCost,
+    canAfford: () => money >= bulletCost,
+    buy: () => { money -= bulletCost; bulletsPerClick++; bulletUpgradeLevel++; bulletCost = Math.floor(bulletCost * 1.6); }
+  },
+  {
+    name: "MULTISHOT", desc: "SHOTS/FIRE",
+    getLevel: () => multishotLevel,
+    getCost: () => multishotCost,
+    canAfford: () => money >= multishotCost,
+    buy: () => { money -= multishotCost; shotsPerFire++; multishotLevel++; multishotCost = Math.floor(multishotCost * 1.8); }
+  },
+  {
+    name: "SHIELD", desc: "+40 MAX HP",
+    getLevel: () => shieldLevel,
+    getCost: () => shieldCost,
+    canAfford: () => money >= shieldCost,
+    buy: () => {
+      money -= shieldCost;
+      shieldLevel++;
+      shieldHP += 3;
+      shieldActive = true;
+      playerMaxHP += 40;
+      playerHP = Math.min(playerHP + 40, playerMaxHP);
+      shieldCost = Math.floor(shieldCost * 2);
+      updateHPBar();
+    }
+  }
+];
+
+function buildShop() {
+  let shop = document.getElementById("shop");
+  shop.innerHTML = "";
+  shopItems.forEach((item, idx) => {
+    let btn = document.createElement("button");
+    btn.className = "shop-item";
+    btn.id = "shopBtn" + idx;
+    btn.innerHTML = `<span class="item-name">${item.name}</span><br><span class="item-level">LVL ${item.getLevel()} • ${item.desc}</span><br><span class="item-cost">$ ${item.getCost()}</span>`;
+    btn.onclick = () => {
+      if (item.canAfford()) {
+        item.buy();
+        notify(item.name + " UPGRADED!");
+        updateShop();
+      } else {
+        notify("NOT ENOUGH CREDITS!");
+      }
+    };
+    shop.appendChild(btn);
+  });
+}
+
+function updateShop() {
+  shopItems.forEach((item, idx) => {
+    let btn = document.getElementById("shopBtn" + idx);
+    if (!btn) return;
+    btn.disabled = !item.canAfford();
+    btn.innerHTML = `<span class="item-name">${item.name}</span><br><span class="item-level">LVL ${item.getLevel()} • ${item.desc}</span><br><span class="item-cost">$ ${item.getCost()}</span>`;
+  });
+}
+
+function toggleInventory() {
+  let panel = document.getElementById("inventoryPanel");
+  panel.style.display = panel.style.display === "none" ? "block" : "none";
+  refreshInventory();
+}
+
+function notify(msg) {
+  let n = document.getElementById("notif");
+  n.textContent = msg;
+  n.classList.add("show");
+  clearTimeout(window._notifTimer);
+  window._notifTimer = setTimeout(() => n.classList.remove("show"), 1800);
+}
+
+function saveGame() {
+  let data = { money, damage, bulletsPerClick, autoClickerLevel, damageUpgradeLevel, bulletUpgradeLevel, shieldLevel, wave };
+  try { localStorage.setItem("spaceSave2", JSON.stringify(data)); } catch(e){}
+}
+
+function loadGame() {
+  try {
+    let data = localStorage.getItem("spaceSave2");
+    if (data) {
+      data = JSON.parse(data);
+      money = data.money || 0; damage = data.damage || 1; bulletsPerClick = data.bulletsPerClick || 1;
+      autoClickerLevel = data.autoClickerLevel || 0; damageUpgradeLevel = data.damageUpgradeLevel || 0;
+      bulletUpgradeLevel = data.bulletUpgradeLevel || 0; shieldLevel = data.shieldLevel || 0;
+      wave = data.wave || 0;
+      shieldHP = shieldLevel * 3; shieldActive = shieldLevel > 0;
+      document.getElementById("waveNum").textContent = wave;
+    }
+  } catch(e) {}
+}
+
+function newGame() {
+  money = 0; bullets = 0; damage = 1; bulletsPerClick = 1; wave = 0;
+  autoClickerLevel = 0; damageUpgradeLevel = 0; bulletUpgradeLevel = 0; shieldLevel = 0; multishotLevel = 0;
+  autoClickerCost = 50; damageCost = 30; bulletCost = 20; shieldCost = 80; multishotCost = 35;
+  shotsPerFire = 1;
+  enemies = []; enemyBullets = []; playerBullets = []; explosions = []; inventory = []; potions = [];
+  playerX = CW / 2 - 22; shieldHP = 0; shieldActive = false; boss = null;
+  moneyMultiplierActive = false; moneyMultiplierEnd = 0;
+  rapidFireActive = false; rapidFireEnd = 0;
+  playerHP = 100; playerMaxHP = 100; playerDead = false;
+  document.getElementById("waveNum").textContent = 0;
+  notify("NEW GAME!");
+  buildShop();
+  updateHPBar();
+  refreshInventory();
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowLeft" || e.key === "a") moveLeft = true;
+  if (e.key === "ArrowRight" || e.key === "d") moveRight = true;
+  if (e.key === " ") { e.preventDefault(); shoot(); }
+});
+document.addEventListener("keyup", e => {
+  if (e.key === "ArrowLeft" || e.key === "a") moveLeft = false;
+  if (e.key === "ArrowRight" || e.key === "d") moveRight = false;
+});
+
+// Touch support
+canvas.addEventListener("touchstart", e => {
+  let t = e.touches[0];
+  let rect = canvas.getBoundingClientRect();
+  let tx = (t.clientX - rect.left) * (CW / rect.width);
+  if (tx < CW/2) moveLeft = true; else moveRight = true;
+  shoot();
+});
+canvas.addEventListener("touchend", () => { moveLeft = false; moveRight = false; });
+
+function drawBoss(b) {
+  let t = frameCount * 0.05;
+  let enrageColor = b.enraged ? `hsl(${frameCount * 6 % 360},100%,55%)` : null;
+
+  // Body — large pixel ship
+  ctx.fillStyle = enrageColor || '#cc44ff';
+  ctx.fillRect(b.x + 30, b.y,      40, 10); // top fin
+  ctx.fillRect(b.x + 10, b.y + 10, 80, 16); // upper body
+  ctx.fillRect(b.x,      b.y + 26, 100, 20); // mid body
+  ctx.fillRect(b.x + 10, b.y + 46, 80, 12); // lower body
+  ctx.fillRect(b.x + 20, b.y + 58, 60, 8);  // tail
+
+  // Wings
+  ctx.fillStyle = enrageColor || '#8822cc';
+  ctx.fillRect(b.x - 30, b.y + 20, 30, 30);
+  ctx.fillRect(b.x + 100,b.y + 20, 30, 30);
+  ctx.fillRect(b.x - 50, b.y + 30, 20, 16);
+  ctx.fillRect(b.x + 130,b.y + 30, 20, 16);
+
+  // Eye / core
+  ctx.fillStyle = b.enraged ? '#ff3355' : '#00eeff';
+  ctx.shadowColor = b.enraged ? '#ff3355' : '#00eeff';
+  ctx.shadowBlur = 12 + 6 * Math.sin(t);
+  ctx.fillRect(b.x + 42, b.y + 28, 16, 12);
+  ctx.shadowBlur = 0;
+
+  // Cannon tips glow
+  ctx.fillStyle = `rgba(255,100,0,${0.5 + 0.5 * Math.sin(t * 2)})`;
+  ctx.fillRect(b.x + 44, b.y + 64, 6, 4);
+  ctx.fillRect(b.x + 38, b.y + 62, 4, 4);
+  ctx.fillRect(b.x + 58, b.y + 62, 4, 4);
+
+  // Health bar
+  let pct = b.hp / b.maxHp;
+  let barW = 160;
+  let barX = b.x - 30;
+  ctx.fillStyle = '#1a0000';
+  ctx.fillRect(barX, b.y - 14, barW, 7);
+  ctx.fillStyle = pct > 0.5 ? '#cc44ff' : pct > 0.25 ? '#ff8800' : '#ff3355';
+  ctx.fillRect(barX, b.y - 14, barW * pct, 7);
+  ctx.strokeStyle = '#440055';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(barX, b.y - 14, barW, 7);
+
+  // Label
+  ctx.fillStyle = '#cc44ff';
+  ctx.font = '6px "Press Start 2P"';
+  ctx.textAlign = 'center';
+  ctx.fillText('BOSS  ' + b.hp + '/' + b.maxHp, b.x + 50, b.y - 17);
+  ctx.textAlign = 'left';
+}
+
+function updateBoss(b) {
+  // Movement
+  b.x += b.vx;
+  let enrageThreshold = b.maxHp * 0.35;
+  if (!b.enraged && b.hp <= enrageThreshold) {
+    b.enraged = true;
+    b.vx *= 1.8;
+    notify("⚠ BOSS ENRAGED!");
+  }
+  if (b.x < 10 || b.x > CW - 140) b.vx *= -1;
+
+  // Shooting patterns
+  b.shootTimer++;
+  let fireRate = b.enraged ? 28 : 50;
+
+  if (b.shootTimer >= fireRate) {
+    b.shootTimer = 0;
+    let bx = b.x + 50, by = b.y + 66;
+
+    if (!b.enraged) {
+      // Phase 1: triple shot spread
+      enemyBullets.push({ x: bx,      y: by, speed: 3, vx: 0 });
+      enemyBullets.push({ x: bx - 12, y: by, speed: 2.8, vx: -0.6 });
+      enemyBullets.push({ x: bx + 12, y: by, speed: 2.8, vx: 0.6 });
+    } else {
+      // Enraged: 5-way burst + faster
+      for (let i = -2; i <= 2; i++) {
+        enemyBullets.push({ x: bx + i * 10, y: by, speed: 4, vx: i * 0.5 });
+      }
+    }
+  }
+}
+
+function updateHPBar() {
+  let pct = playerHP / playerMaxHP;
+  let bar = document.getElementById("hpBar");
+  let txt = document.getElementById("hpText");
+  bar.style.width = (pct * 100) + "%";
+  bar.style.background = pct > 0.5
+    ? "linear-gradient(90deg,#00ff88,#00cc66)"
+    : pct > 0.25
+    ? "linear-gradient(90deg,#ffee00,#ff8800)"
+    : "linear-gradient(90deg,#ff3355,#ff6644)";
+  txt.textContent = playerHP + " / " + playerMaxHP;
+  txt.style.color = pct > 0.5 ? "#00ff88" : pct > 0.25 ? "#ffee00" : "#ff3355";
+}
+
+function respawn() {
+  playerHP = playerMaxHP;
+  playerDead = false;
+  playerX = CW / 2 - 22;
+  enemyBullets = [];
+  document.getElementById("deadMsg").style.display = "none";
+  updateHPBar();
+  notify("HULL REPAIRED! FULL HP!");
+}
+
+const POTION_TYPES = {
+  health:   { label: 'HEALTH POTION',   desc: '+25 HP',          color: '#ff6688' },
+  mega:     { label: 'MEGA POTION',      desc: '+50 HP',          color: '#00ff88' },
+  money:    { label: 'MONEY MULTIPLIER', desc: '2x CREDITS 30s',  color: '#ffee00' },
+  rapidfire:{ label: 'RAPID FIRE',       desc: '3x FIRE SPD 30s', color: '#00eeff' },
+};
+
+function randomPotionType() {
+  // Mega potions only drop on boss waves (multiples of 10)
+  const types = (wave % 10 === 0)
+    ? Object.keys(POTION_TYPES)
+    : Object.keys(POTION_TYPES).filter(t => t !== 'mega');
+  return types[Math.floor(Math.random() * types.length)];
+}
+
+function spawnPotion(x, y, type = null) {
+  if (!type) type = randomPotionType();
+  let existing = inventory.find(i => i.type === type);
+  if (existing) {
+    existing.count++;
+  } else {
+    inventory.push({ type, count: 1 });
+  }
+  notify('DROPPED: ' + POTION_TYPES[type].label + ' (' + POTION_TYPES[type].desc + ')');
+  refreshInventory();
+}
+
+function usePotion(type) {
+  let stack = inventory.find(i => i.type === type);
+  if (!stack || stack.count <= 0) return;
+
+  stack.count--;
+  if (stack.count <= 0) inventory = inventory.filter(i => i.type !== type);
+
+  let now = Date.now();
+  if (type === 'health') {
+    playerHP = Math.min(playerHP + 25, playerMaxHP);
+    updateHPBar();
+    notify('HEALTH POTION! +25 HP');
+  } else if (type === 'mega') {
+    playerHP = Math.min(playerHP + 50, playerMaxHP);
+    updateHPBar();
+    notify('MEGA POTION! +50 HP');
+  } else if (type === 'money') {
+    moneyMultiplierActive = true;
+    moneyMultiplierEnd = now + 30000;
+    notify('MONEY MULTIPLIER! 2x CREDITS FOR 30s!');
+    screenFlash = 6;
+  } else if (type === 'rapidfire') {
+    rapidFireActive = true;
+    rapidFireEnd = now + 30000;
+    notify('RAPID FIRE! 3x FIRE SPEED FOR 30s!');
+    screenFlash = 6;
+  }
+
+  refreshInventory();
+}
+
+function refreshInventory() {
+  let list = document.getElementById("inventoryList");
+  if (!list) return;
+  if (inventory.length === 0) {
+    list.innerHTML = '<span style="color:#004433;">EMPTY</span>';
+    return;
+  }
+  list.innerHTML = inventory.map(item => {
+    let p = POTION_TYPES[item.type] || { label: item.type, desc: '', color: '#ffffff' };
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #001a11;gap:6px;">
+      <span style="color:${p.color};font-size:7px;line-height:1.6;">${p.label}<br><span style="color:#006644;">${p.desc}</span> <span style="color:#ffee00;">x${item.count}</span></span>
+      <button class="btn" style="width:auto;padding:4px 8px;font-size:6px;margin:0;flex-shrink:0;" onclick="usePotion('${item.type}')"><span>USE</span></button>
+    </div>`;
+  }).join('');
+}
+
+function gameLoop() {
+  frameCount++;
+  ctx.clearRect(0, 0, CW, CH);
+  updateStars();
+
+  if (playerDead) {
+    ctx.fillStyle = "rgba(255,0,30,0.18)";
+    ctx.fillRect(0, 0, CW, CH);
+    ctx.fillStyle = "#ff3355";
+    ctx.shadowColor = "#ff3355"; ctx.shadowBlur = 20;
+    ctx.font = '20px "Press Start 2P"';
+    ctx.textAlign = "center";
+    ctx.fillText("GAME OVER", CW/2, CH/2 - 30);
+    ctx.shadowBlur = 0;
+    ctx.font = '9px "Press Start 2P"';
+    ctx.fillStyle = "#ff335599";
+    let secs = Math.ceil(Math.max(0, (window._gameOverEnd - Date.now()) / 1000));
+    ctx.fillText("RESTARTING IN " + secs + "...", CW/2, CH/2 + 10);
+    ctx.font = '7px "Press Start 2P"';
+    ctx.fillStyle = "#ff335566";
+    ctx.fillText("WAVE " + wave + " REACHED", CW/2, CH/2 + 35);
+    ctx.textAlign = "left";
+    if (Date.now() >= window._gameOverEnd) {
+      newGame();
+    }
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  // Screen flash on laser/hit
+  if (screenFlash > 0) {
+    ctx.fillStyle = `rgba(255,${screenFlash > 4 ? 30 : 100},0,${screenFlash * 0.03})`;
+    ctx.fillRect(0, 0, CW, CH);
+    screenFlash--;
+  }
+
+  // Formation movement — scales with wave
+  let formSpeed = 0.3 + wave * 0.08;
+  let driftSpeed = 0.1 + wave * 0.03;
+  formationX += formationDirection * formSpeed;
+  if (formationX > 380 || formationX < 30) formationDirection *= -1;
+
+  // Enemies
+  enemies.forEach((enemy) => {
+    enemy.x += formationDirection * driftSpeed;
+    drawAlien(enemy.x, enemy.y, enemy.type);
+    drawHealth(enemy);
+    enemyShoot(enemy);
+  });
+
+  // Boss
+  if (boss) {
+    updateBoss(boss);
+    drawBoss(boss);
+  }
+
+  // Player bullets
+  playerBullets = playerBullets.filter((b, i) => {
+    b.y -= b.speed;
+    if (b.y < 0) return false;
+
+    // Draw bullet with glow
+    ctx.shadowColor = '#ffee00';
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = '#ffee00';
+    ctx.fillRect(b.x - 1, b.y, 3, 10);
+    ctx.shadowBlur = 0;
+
+    // Hit boss
+    if (boss && b.x > boss.x - 30 && b.x < boss.x + 130 && b.y > boss.y && b.y < boss.y + 70) {
+      boss.hp -= damage;
+      createExplosion(b.x, b.y);
+      if (boss.hp <= 0) defeatBoss();
+      return false;
+    }
+
+    let hit = false;
+    enemies = enemies.filter((e) => {
+      if (b.x > e.x && b.x < e.x + 22 && b.y > e.y && b.y < e.y + 18) {
+        e.hp -= damage;
+        hit = true;
+        if (e.hp <= 0) {
+          createExplosion(e.x, e.y);
+          let lateBonus = wave > 9 ? 1 + Math.floor(wave / 10) : 1;
+          let earned = (5 + wave * 2) * lateBonus * (moneyMultiplierActive ? 2 : 1);
+          money += earned;
+          addFloatingText(e.x + 5, e.y, "+" + earned, moneyMultiplierActive ? '#ffee00' : '#ffee00');
+          if (Math.random() < 0.15) spawnPotion(e.x, e.y);
+          return false;
+        }
+      }
+      return true;
+    });
+    return !hit;
+  });
+
+  // Wave clear check — heal after all enemies/boss down
+  let allClear = enemies.length === 0 && !boss && playerBullets.length === 0 && wave > 0 && !playerDead;
+  if (allClear && !window._waveJustCleared) {
+    window._waveJustCleared = true;
+    let healAmt = Math.min(30, playerMaxHP - playerHP);
+    if (healAmt > 0) {
+      playerHP += healAmt;
+      updateHPBar();
+      addFloatingText(playerX + 10, playerY - 10, "+" + healAmt + " HP", "#00ff88");
+      notify("WAVE CLEAR! +" + healAmt + " HP");
+    }
+  }
+  if (enemies.length > 0 || boss) window._waveJustCleared = false;
+
+  // Enemy bullets
+  enemyBullets = enemyBullets.filter(b => {
+    b.y += b.speed;
+    if (b.vx) b.x += b.vx;
+    if (b.y > CH || b.x < 0 || b.x > CW) return false;
+
+    ctx.shadowColor = boss ? '#cc44ff' : '#ff3355';
+    ctx.shadowBlur = 5;
+    ctx.fillStyle = boss ? '#cc44ff' : '#ff3355';
+    ctx.fillRect(b.x - 1, b.y, 3, 10);
+    ctx.shadowBlur = 0;
+
+    // Hit player check
+    if (b.x > playerX + 4 && b.x < playerX + 40 && b.y > playerY && b.y < playerY + 14) {
+      if (shieldActive && shieldHP > 0) {
+        shieldHP--;
+        if (shieldHP <= 0) { shieldActive = false; notify("SHIELD DEPLETED!"); }
+      } else {
+        playerHP = Math.max(0, playerHP - 10);
+        screenFlash = 6;
+        notify("HIT! -10 HP");
+        if (playerHP <= 0) {
+          playerDead = true;
+          enemyBullets = [];
+          window._gameOverEnd = Date.now() + 4000;
+        }
+      }
+      updateHPBar();
+      return false;
+    }
+    return true;
+  });
+
+  drawExplosions();
+
+  // Floating texts
+  floatingTexts = floatingTexts.filter(ft => {
+    ft.y += ft.vy;
+    ft.life--;
+    ctx.globalAlpha = ft.life / 40;
+    ctx.fillStyle = ft.color;
+    ctx.font = '7px "Press Start 2P"';
+    ctx.fillText(ft.text, ft.x, ft.y);
+    ctx.globalAlpha = 1;
+    return ft.life > 0;
+  });
+
+  // Auto clicker
+  if (autoClickerLevel > 0) bullets += autoClickerLevel * 0.015;
+
+  // Timed effects — expire check
+  let now = Date.now();
+  if (moneyMultiplierActive && now > moneyMultiplierEnd) {
+    moneyMultiplierActive = false;
+    notify("MONEY MULTIPLIER EXPIRED!");
+  }
+  if (rapidFireActive && now > rapidFireEnd) {
+    rapidFireActive = false;
+    notify("RAPID FIRE EXPIRED!");
+  }
+
+  // Active effects HUD on canvas
+  let hudY = 18;
+  if (moneyMultiplierActive) {
+    let secs = Math.ceil((moneyMultiplierEnd - now) / 1000);
+    ctx.fillStyle = '#ffee00';
+    ctx.shadowColor = '#ffee00'; ctx.shadowBlur = 6;
+    ctx.font = '8px "Press Start 2P"';
+    ctx.fillText('2x MONEY ' + secs + 's', 10, hudY);
+    ctx.shadowBlur = 0;
+    hudY += 16;
+  }
+  if (rapidFireActive) {
+    let secs = Math.ceil((rapidFireEnd - now) / 1000);
+    ctx.fillStyle = '#00eeff';
+    ctx.shadowColor = '#00eeff'; ctx.shadowBlur = 6;
+    ctx.font = '8px "Press Start 2P"';
+    ctx.fillText('RAPID FIRE ' + secs + 's', 10, hudY);
+    ctx.shadowBlur = 0;
+  }
+
+  // Player movement
+  if (moveLeft) playerX -= 4;
+  if (moveRight) playerX += 4;
+  playerX = Math.max(0, Math.min(CW - playerWidth, playerX));
+
+  // Draw player
+  drawPlayer(playerX, playerY);
+
+  // Grid line at player level
+  ctx.strokeStyle = 'rgba(0,255,136,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, playerY - 5);
+  ctx.lineTo(CW, playerY - 5);
+  ctx.stroke();
+
+  // UI
+  document.getElementById("money").textContent = Math.floor(money);
+  document.getElementById("bullets").textContent = Math.floor(bullets);
+  document.getElementById("damage").textContent = damage;
+  document.getElementById("bpc").textContent = bulletsPerClick;
+
+  if (frameCount % 30 === 0) updateShop();
+  updateLaserCost();
+
+  if (frameCount % 300 === 0) saveGame();
+
+  requestAnimationFrame(gameLoop);
+}
+
+loadGame();
+buildShop();
+updateHPBar();
+gameLoop();
+</script>
+</body>
+</html>

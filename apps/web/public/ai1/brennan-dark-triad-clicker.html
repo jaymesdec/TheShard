@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE DARK TRIAD</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --narc: #c084fc;
+    --psyc: #f43f5e;
+    --mach: #fb923c;
+    --gold: #fbbf24;
+    --text: #f3e8ff;
+    --muted: #a78bca;
+    --dark: #0a0010;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Crimson Pro', serif;
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    background: #000;
+  }
+
+  /* ── ANIMATED GRADIENT BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(
+      125deg,
+      #000000 0%,
+      #0d0020 15%,
+      #1a0040 28%,
+      #3b0070 42%,
+      #1a0040 56%,
+      #0d0020 70%,
+      #000000 82%,
+      #1a0040 100%
+    );
+    background-size: 400% 400%;
+    animation: gradientDrift 12s ease infinite;
+  }
+
+  @keyframes gradientDrift {
+    0%   { background-position: 0% 0%; }
+    25%  { background-position: 100% 30%; }
+    50%  { background-position: 60% 100%; }
+    75%  { background-position: 20% 60%; }
+    100% { background-position: 0% 0%; }
+  }
+
+  /* Grain overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    opacity: 0.04;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 128px;
+  }
+
+  /* ── LAYOUT ── */
+  #app {
+    position: relative;
+    z-index: 10;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    padding: 2rem 0 1.5rem;
+    position: relative;
+  }
+
+  .eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.45em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+
+  h1 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.6rem, 5vw, 3rem);
+    font-weight: 900;
+    background: linear-gradient(135deg, #e879f9, #a855f7, #7c3aed, #c084fc);
+    background-size: 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 4s ease infinite;
+    text-shadow: none;
+    line-height: 1.1;
+  }
+
+  @keyframes shimmer {
+    0%,100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+
+  .subtitle {
+    font-style: italic;
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-top: 0.4rem;
+    font-weight: 300;
+  }
+
+  /* ── CLICK BUTTON ── */
+  .click-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 1.5rem 0;
+  }
+
+  .soul-count {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+    text-shadow: 0 0 40px rgba(192, 132, 252, 0.5);
+    transition: transform 0.05s;
+  }
+
+  .soul-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+  }
+
+  .sps {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+    font-style: italic;
+  }
+
+  /* Triangle button wrapper — handles hover/active transforms */
+  #btn-wrap {
+    position: relative;
+    width: 170px;
+    height: 160px;
+    cursor: pointer;
+    transition: transform 0.08s, filter 0.15s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #btn-wrap:active  { transform: scale(0.91); }
+  #btn-wrap:hover:not(:active) { transform: scale(1.06); filter: brightness(1.15); }
+
+  /* Glow halo behind the triangle */
+  #btn-wrap::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+    background: linear-gradient(160deg, #c084fc, #7c3aed, #0d0020);
+    opacity: 0.6;
+    z-index: 0;
+    filter: blur(4px);
+  }
+
+  /* The actual clickable triangle */
+  #main-btn {
+    position: relative;
+    z-index: 1;
+    width: 160px;
+    height: 150px;
+    clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+    border: none;
+    background: linear-gradient(160deg,
+      rgba(139,92,246,0.85) 0%,
+      rgba(88,28,135,0.95) 45%,
+      rgba(10,0,16,1) 100%);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 1.5rem;
+    filter:
+      drop-shadow(0 0 18px rgba(139,92,246,0.55))
+      drop-shadow(0 0 50px rgba(139,92,246,0.2));
+    transition: filter 0.15s;
+  }
+
+  /* Inner triangle glow SVG lines */
+  #main-btn svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  #main-btn:active {
+    filter:
+      drop-shadow(0 0 30px rgba(192,132,252,0.8))
+      drop-shadow(0 0 60px rgba(192,132,252,0.4));
+  }
+
+  /* Auto-glow when passive income active */
+
+  /* Click particles */
+  .particle {
+    position: fixed;
+    pointer-events: none;
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--narc);
+    z-index: 100;
+    animation: particleFloat 0.9s ease-out forwards;
+  }
+
+  .particle.crit {
+    font-size: 1rem;
+    font-weight: 900;
+    color: #fbbf24;
+    text-shadow:
+      0 0 10px rgba(251,191,36,0.9),
+      0 0 30px rgba(251,191,36,0.5),
+      0 0 60px rgba(251,191,36,0.3);
+    animation: critFloat 1.1s ease-out forwards;
+    z-index: 101;
+  }
+
+  /* Screen flash on crit */
+  #crit-flash {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, rgba(251,191,36,0.18) 0%, transparent 70%);
+    opacity: 0;
+  }
+  #crit-flash.flash {
+    animation: critFlash 0.4s ease-out forwards;
+  }
+  @keyframes critFlash {
+    0%   { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes particleFloat {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-70px) scale(0.5); }
+  }
+
+  @keyframes critFloat {
+    0%   { opacity: 1; transform: translateY(0) scale(1.2); }
+    20%  { transform: translateY(-15px) scale(1.4); }
+    100% { opacity: 0; transform: translateY(-110px) scale(0.7); }
+  }
+
+  /* Crit chance display in stats bar */
+  .stat-pill.crit-pill { border-color: rgba(251,191,36,0.25); }
+  .stat-pill.crit-pill span { color: var(--gold); }
+
+  /* ── TRAITS PANEL ── */
+  .traits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin: 1rem 0 1.5rem;
+  }
+
+  .trait-card {
+    background: rgba(10,0,16,0.6);
+    border: 1px solid rgba(192,132,252,0.15);
+    border-radius: 12px;
+    padding: 1rem 0.85rem;
+    text-align: center;
+    backdrop-filter: blur(12px);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .trait-card:hover {
+    border-color: rgba(192,132,252,0.4);
+    box-shadow: 0 0 20px rgba(192,132,252,0.1);
+  }
+
+  .trait-icon { font-size: 1.5rem; margin-bottom: 0.3rem; }
+  .trait-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+  .trait-name.narc { color: var(--narc); }
+  .trait-name.psyc { color: var(--psyc); }
+  .trait-name.mach { color: var(--mach); }
+
+  .trait-level {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .trait-bar-bg {
+    height: 3px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 2px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+  }
+  .trait-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+  .narc-fill { background: linear-gradient(90deg, #7c3aed, #c084fc); }
+  .psyc-fill { background: linear-gradient(90deg, #9f1239, #f43f5e); }
+  .mach-fill { background: linear-gradient(90deg, #92400e, #fb923c); }
+
+  /* ── UPGRADES ── */
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 1.5rem 0 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(192,132,252,0.15);
+  }
+
+  .upgrades-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.65rem;
+  }
+
+  .upgrade-btn {
+    background: rgba(10,0,16,0.65);
+    border: 1px solid rgba(192,132,252,0.12);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    transition: all 0.15s;
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upgrade-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .upgrade-btn.narc-up::before { background: radial-gradient(circle at 50% 0%, rgba(192,132,252,0.12), transparent 70%); }
+  .upgrade-btn.psyc-up::before { background: radial-gradient(circle at 50% 0%, rgba(244,63,94,0.12), transparent 70%); }
+  .upgrade-btn.mach-up::before { background: radial-gradient(circle at 50% 0%, rgba(251,146,60,0.12), transparent 70%); }
+
+  .upgrade-btn:hover:not(:disabled)::before { opacity: 1; }
+
+  .upgrade-btn:hover:not(:disabled) {
+    border-color: rgba(192,132,252,0.35);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+
+  .upgrade-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .upgrade-btn.purchased {
+    opacity: 0.5;
+    border-color: rgba(255,255,255,0.05);
+    cursor: default;
+  }
+
+  .up-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.3rem; }
+  .up-name { font-family: 'Cinzel', serif; font-size: 0.78rem; font-weight: 600; line-height: 1.3; }
+  .up-tag { font-size: 0.62rem; padding: 0.1rem 0.45rem; border-radius: 10px; font-family: 'Cinzel', serif; letter-spacing: 0.05em; }
+  .narc-tag { background: rgba(192,132,252,0.15); color: var(--narc); }
+  .psyc-tag { background: rgba(244,63,94,0.15); color: var(--psyc); }
+  .mach-tag { background: rgba(251,146,60,0.15); color: var(--mach); }
+
+  .up-desc { font-size: 0.78rem; color: var(--muted); font-style: italic; margin-bottom: 0.5rem; line-height: 1.4; }
+  .up-cost { font-family: 'Cinzel', serif; font-size: 0.72rem; color: var(--gold); }
+  .up-effect { font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-top: 0.15rem; }
+
+  /* ── PRESTIGE ── */
+  #prestige-btn {
+    display: block;
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(251,191,36,0.25);
+    background: linear-gradient(135deg, rgba(120,53,15,0.4), rgba(10,0,16,0.8));
+    color: var(--gold);
+    font-family: 'Cinzel', serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(8px);
+  }
+
+  #prestige-btn:hover:not(:disabled) {
+    border-color: rgba(251,191,36,0.6);
+    box-shadow: 0 0 30px rgba(251,191,36,0.15);
+  }
+  #prestige-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── MILESTONE TOAST ── */
+  #toast {
+    position: fixed;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(-120px);
+    background: rgba(10,0,16,0.9);
+    border: 1px solid rgba(192,132,252,0.4);
+    border-radius: 12px;
+    padding: 0.75rem 1.5rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: var(--narc);
+    z-index: 999;
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    backdrop-filter: blur(16px);
+    white-space: nowrap;
+    text-align: center;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 0.5rem 0 1rem;
+  }
+
+  .stat-pill {
+    background: rgba(10,0,16,0.5);
+    border: 1px solid rgba(192,132,252,0.12);
+    border-radius: 20px;
+    padding: 0.3rem 0.9rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    backdrop-filter: blur(8px);
+  }
+  .stat-pill span { color: var(--text); font-weight: 600; }
+
+  /* ── AUTO-CLICKER PULSE ── */
+  @keyframes autoGlow {
+    0%,100% { box-shadow: 0 0 30px rgba(139,92,246,0.3), 0 0 80px rgba(139,92,246,0.1), inset 0 0 30px rgba(0,0,0,0.5); }
+    50%      { box-shadow: 0 0 50px rgba(192,132,252,0.5), 0 0 120px rgba(139,92,246,0.2), inset 0 0 30px rgba(0,0,0,0.5); }
+  }
+  #btn-wrap.auto-active #main-btn { animation: autoGlow 1.5s ease-in-out infinite; }
+
+  @media (max-width: 500px) {
+    .traits-grid { grid-template-columns: repeat(3,1fr); gap: 0.5rem; }
+    .upgrades-grid { grid-template-columns: 1fr 1fr; }
+    #main-btn { width: 130px; height: 130px; font-size: 2.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="eyebrow">The Personality Disorder Saga</div>
+    <h1>THE DARK TRIAD</h1>
+    <p class="subtitle">Harvest souls. Ascend. Dominate.</p>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-pill">Total Harvested: <span id="stat-total">0</span></div>
+    <div class="stat-pill">Prestige: <span id="stat-prestige">0</span></div>
+    <div class="stat-pill">Click Power: <span id="stat-power">1</span></div>
+    <div class="stat-pill crit-pill">Crit Chance: <span id="stat-crit">5%</span></div>
+  </div>
+
+  <div id="crit-flash"></div>
+
+  <div class="click-zone">
+    <div class="soul-count" id="soul-count">0</div>
+    <div class="soul-label">Souls Collected</div>
+    <div class="sps" id="sps-display">0 souls per second</div>
+    <div id="btn-wrap" onclick="doClick(event)">
+      <button id="main-btn" aria-label="Harvest souls">
+        <svg viewBox="0 0 160 150" xmlns="http://www.w3.org/2000/svg">
+          <!-- inner wireframe triangle lines for depth -->
+          <polygon points="80,18 148,140 12,140"
+            fill="none" stroke="rgba(192,132,252,0.18)" stroke-width="1.5"/>
+          <polygon points="80,45 128,130 32,130"
+            fill="none" stroke="rgba(192,132,252,0.12)" stroke-width="1"/>
+          <!-- corner accent dots -->
+          <circle cx="80"  cy="18"  r="3" fill="rgba(192,132,252,0.6)"/>
+          <circle cx="148" cy="140" r="3" fill="rgba(192,132,252,0.6)"/>
+          <circle cx="12"  cy="140" r="3" fill="rgba(192,132,252,0.6)"/>
+          <!-- center eye / sigil -->
+          <circle cx="80" cy="100" r="10" fill="none" stroke="rgba(232,121,249,0.5)" stroke-width="1.5"/>
+          <circle cx="80" cy="100" r="4"  fill="rgba(232,121,249,0.7)"/>
+          <line x1="80" y1="86"  x2="80" y2="78"  stroke="rgba(232,121,249,0.4)" stroke-width="1"/>
+          <line x1="80" y1="114" x2="80" y2="122" stroke="rgba(232,121,249,0.4)" stroke-width="1"/>
+          <line x1="66" y1="100" x2="58" y2="100" stroke="rgba(232,121,249,0.4)" stroke-width="1"/>
+          <line x1="94" y1="100" x2="102" y2="100"stroke="rgba(232,121,249,0.4)" stroke-width="1"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="traits-grid">
+    <div class="trait-card">
+      <div class="trait-icon">👑</div>
+      <div class="trait-name narc">Narcissism</div>
+      <div class="trait-level" id="narc-level">0</div>
+      <div class="trait-bar-bg"><div class="trait-bar-fill narc-fill" id="narc-bar" style="width:0%"></div></div>
+    </div>
+    <div class="trait-card">
+      <div class="trait-icon">🗡️</div>
+      <div class="trait-name psyc">Psychopathy</div>
+      <div class="trait-level" id="psyc-level">0</div>
+      <div class="trait-bar-bg"><div class="trait-bar-fill psyc-fill" id="psyc-bar" style="width:0%"></div></div>
+    </div>
+    <div class="trait-card">
+      <div class="trait-icon">🕸️</div>
+      <div class="trait-name mach">Machiavellianism</div>
+      <div class="trait-level" id="mach-level">0</div>
+      <div class="trait-bar-bg"><div class="trait-bar-fill mach-fill" id="mach-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="section-title">Upgrades</div>
+  <div class="upgrades-grid" id="upgrades-container"></div>
+
+  <button id="prestige-btn" onclick="prestige()" disabled>⚡ PRESTIGE — Reset for Eternal Power (Need 10,000 souls)</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── GAME STATE ──
+let souls = 0;
+let totalSouls = 0;
+let prestigeCount = 0;
+let clickPower = 1;
+let soulsPerSecond = 0;
+let narcLevel = 0, psycLevel = 0, machLevel = 0;
+let critChance = 5;   // base 5%
+let critMultiplier = 3; // base ×3
+
+const UPGRADES = [
+  // NARCISSISM — click power
+  { id:'n1', trait:'narc', name:'Mirror Reflection', desc:'Your gaze alone shatters lesser souls.', cost:25,   effect:'+2 per click',   type:'click', value:2,   icon:'🪞' },
+  { id:'n2', trait:'narc', name:'Cult of Self',       desc:'Followers harvest souls in your name.', cost:100,  effect:'+1 soul/sec',    type:'sps',   value:1,   icon:'👁️' },
+  { id:'n3', trait:'narc', name:'Divine Ego',         desc:'Your superiority is cosmically proven.', cost:350,  effect:'+5 per click',   type:'click', value:5,   icon:'✨' },
+  { id:'n4', trait:'narc', name:'God Complex',        desc:'Mortals exist only to feed you.',        cost:1200, effect:'+3 souls/sec',   type:'sps',   value:3,   icon:'⚡' },
+  { id:'n5', trait:'narc', name:'Narcissistic Rage',  desc:'Your fury harvests dozens at once.',     cost:5000, effect:'+15 per click',  type:'click', value:15,  icon:'🔥' },
+
+  // PSYCHOPATHY — passive income
+  { id:'p1', trait:'psyc', name:'Cold Calculation',   desc:'Emotions are inefficiencies. Purged.',   cost:50,   effect:'+2 souls/sec',   type:'sps',   value:2,   icon:'🧊' },
+  { id:'p2', trait:'psyc', name:'Predator Instinct',  desc:'You sense fear before they feel it.',    cost:200,  effect:'+3 per click',   type:'click', value:3,   icon:'🐺' },
+  { id:'p3', trait:'psyc', name:'Emotional Void',     desc:'Nothing can stop a hollow vessel.',      cost:750,  effect:'+8 souls/sec',   type:'sps',   value:8,   icon:'🕳️' },
+  { id:'p4', trait:'psyc', name:'Remorseless Engine', desc:'Consequence is a concept for the weak.', cost:2500, effect:'+20 souls/sec',  type:'sps',   value:20,  icon:'⚙️' },
+  { id:'p5', trait:'psyc', name:'Pure Sociopathy',    desc:'Society was a cage. Now you are free.',  cost:8000, effect:'+50 souls/sec',  type:'sps',   value:50,  icon:'🗡️' },
+
+  // MACHIAVELLIANISM — multipliers
+  { id:'m1', trait:'mach', name:'Silver Tongue',      desc:'Words are more lethal than weapons.',    cost:75,   effect:'×1.5 click power',type:'mult',  value:1.5, icon:'🕸️' },
+  { id:'m2', trait:'mach', name:'Puppet Strings',     desc:'You pull. They dance. Souls flow.',      cost:300,  effect:'+5 souls/sec',   type:'sps',   value:5,   icon:'🎭' },
+  { id:'m3', trait:'mach', name:'The Art of Deceit',  desc:'Every truth is a lie optimized.',        cost:'1000',effect:'×2 click power', type:'mult',  value:2,   icon:'🎭' },
+  { id:'m4', trait:'mach', name:'Shadow Throne',      desc:'Rule from darkness. Always.',            cost:4000, effect:'+30 souls/sec',  type:'sps',   value:30,  icon:'👑' },
+  { id:'m5', trait:'mach', name:'The Prince',         desc:'Machiavelli bows to you now.',           cost:10000,effect:'×3 all income',   type:'megamult',value:3, icon:'📜' },
+
+  // CRITICAL HIT — psychopathy tree
+  { id:'c1', trait:'psyc', name:'Razor Instinct',     desc:'Sometimes, the kill is just... perfect.', cost:150,  effect:'+10% crit chance', type:'crit', value:10,  icon:'⚡' },
+  { id:'c2', trait:'narc', name:'Moment of Glory',    desc:'You live for the spectacular strike.',     cost:600,  effect:'+15% crit chance', type:'crit', value:15,  icon:'✦' },
+  { id:'c3', trait:'mach', name:'Calculated Strike',  desc:'Precision is the highest form of power.',  cost:2000, effect:'+20% crit chance', type:'crit', value:20,  icon:'🎯' },
+  { id:'c4', trait:'psyc', name:'Frenzy State',       desc:'Crits deal ×5 damage. Pure chaos.',        cost:6000, effect:'Crit = ×5 souls',   type:'critmult', value:5, icon:'🔱' },
+];
+
+const purchased = new Set();
+
+function renderUpgrades() {
+  const container = document.getElementById('upgrades-container');
+  container.innerHTML = '';
+  for (const up of UPGRADES) {
+    const btn = document.createElement('button');
+    const isPurchased = purchased.has(up.id);
+    const canAfford = souls >= up.cost;
+
+    btn.className = `upgrade-btn ${up.trait}-up${isPurchased?' purchased':''}`;
+    btn.disabled = isPurchased || !canAfford;
+    btn.innerHTML = `
+      <div class="up-header">
+        <div class="up-name">${up.icon} ${up.name}</div>
+        <span class="up-tag ${up.trait}-tag">${up.trait.toUpperCase()}</span>
+      </div>
+      <div class="up-desc">${up.desc}</div>
+      <div class="up-cost">${isPurchased ? '✓ Acquired' : `🖤 ${Number(up.cost).toLocaleString()} souls`}</div>
+      <div class="up-effect">${up.effect}</div>`;
+
+    if (!isPurchased) btn.onclick = () => buyUpgrade(up.id);
+    container.appendChild(btn);
+  }
+}
+
+function buyUpgrade(id) {
+  const up = UPGRADES.find(u => u.id === id);
+  if (!up || purchased.has(up.id) || souls < up.cost) return;
+
+  souls -= up.cost;
+  purchased.add(up.id);
+
+  if (up.trait === 'narc') narcLevel++;
+  else if (up.trait === 'psyc') psycLevel++;
+  else if (up.trait === 'mach') machLevel++;
+
+  recalcStats();
+  showToast(`${up.icon} ${up.name} — ${up.effect}`);
+  renderUpgrades();
+  updateUI();
+}
+
+function recalcStats() {
+  let baseClick = 1 + (prestigeCount * 2);
+  let baseSPS = 0;
+  let multiplier = 1;
+  let baseCrit = 5;
+  let baseCritMult = 3;
+
+  for (const id of purchased) {
+    const up = UPGRADES.find(u => u.id === id);
+    if (!up) continue;
+    if (up.type === 'click')    baseClick += up.value;
+    else if (up.type === 'sps') baseSPS += up.value;
+    else if (up.type === 'mult') multiplier *= up.value;
+    else if (up.type === 'megamult') { multiplier *= up.value; baseSPS = Math.floor(baseSPS * up.value); }
+    else if (up.type === 'crit') baseCrit += up.value;
+    else if (up.type === 'critmult') baseCritMult = up.value;
+  }
+
+  clickPower    = Math.floor(baseClick * multiplier);
+  soulsPerSecond = Math.floor(baseSPS * multiplier);
+  critChance    = Math.min(baseCrit, 75); // cap at 75%
+  critMultiplier = baseCritMult;
+}
+
+// ── CLICK ──
+function doClick(e) {
+  const isCrit = Math.random() * 100 < critChance;
+  const gain = isCrit ? Math.floor(clickPower * critMultiplier) : clickPower;
+
+  souls += gain;
+  totalSouls += gain;
+
+  if (isCrit) {
+    // Big golden crit particle
+    spawnParticle(e.clientX, e.clientY, `⚡ CRITICAL! +${gain.toLocaleString()}`, true);
+    // Extra burst particles
+    for (let i = 0; i < 4; i++) {
+      setTimeout(() => spawnParticle(
+        e.clientX + (Math.random()-0.5)*60,
+        e.clientY + (Math.random()-0.5)*40,
+        `+${clickPower}`, false
+      ), i * 60);
+    }
+    // Screen flash
+    const flash = document.getElementById('crit-flash');
+    flash.classList.remove('flash');
+    void flash.offsetWidth; // reflow to restart animation
+    flash.classList.add('flash');
+    // Big shake
+    const counter = document.getElementById('soul-count');
+    counter.style.transform = 'scale(1.18)';
+    counter.style.color = '#fbbf24';
+    counter.style.textShadow = '0 0 30px rgba(251,191,36,0.8)';
+    setTimeout(() => {
+      counter.style.transform = 'scale(1)';
+      counter.style.color = '';
+      counter.style.textShadow = '';
+    }, 300);
+  } else {
+    spawnParticle(e.clientX, e.clientY, `+${gain}`, false);
+    document.getElementById('soul-count').style.transform = 'scale(1.07)';
+    setTimeout(() => document.getElementById('soul-count').style.transform = 'scale(1)', 100);
+  }
+
+  updateUI();
+}
+
+function spawnParticle(x, y, text, isCrit = false) {
+  const el = document.createElement('div');
+  el.className = isCrit ? 'particle crit' : 'particle';
+  el.textContent = text;
+  el.style.left = (x - 10 + (Math.random()*20 - 10)) + 'px';
+  el.style.top  = (y - 10) + 'px';
+  if (!isCrit) el.style.color = ['#c084fc','#f43f5e','#fb923c','#fbbf24'][Math.floor(Math.random()*4)];
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), isCrit ? 1100 : 900);
+}
+
+// ── PRESTIGE ──
+function prestige() {
+  if (souls < 10000) return;
+  prestigeCount++;
+  souls = 0;
+  totalSouls = 0;
+  narcLevel = psycLevel = machLevel = 0;
+  purchased.clear();
+  recalcStats();
+  showToast(`⚡ Prestige ${prestigeCount}! Click power permanently ×${1 + prestigeCount}`);
+  renderUpgrades();
+  updateUI();
+}
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── MILESTONES ──
+const milestones = [
+  [100,   '💀 First 100 souls claimed'],
+  [500,   '🖤 500 souls — darkness grows'],
+  [1000,  '👑 1,000 souls — the throne beckons'],
+  [5000,  '🗡️ 5,000 souls — tyrant rises'],
+  [10000, '⚡ 10,000 — prestige awaits...'],
+  [50000, '📜 50,000 — legend of malice'],
+];
+const triggered = new Set();
+function checkMilestones() {
+  for (const [n, msg] of milestones) {
+    if (totalSouls >= n && !triggered.has(n)) {
+      triggered.add(n);
+      showToast(msg);
+    }
+  }
+}
+
+// ── UI UPDATE ──
+function updateUI() {
+  document.getElementById('soul-count').textContent = Math.floor(souls).toLocaleString();
+  document.getElementById('sps-display').textContent = `${soulsPerSecond.toLocaleString()} souls per second`;
+  document.getElementById('stat-total').textContent = Math.floor(totalSouls).toLocaleString();
+  document.getElementById('stat-prestige').textContent = prestigeCount;
+  document.getElementById('stat-power').textContent = clickPower.toLocaleString();
+  document.getElementById('stat-crit').textContent = `${critChance}% (×${critMultiplier})`;
+
+  // Trait levels
+  document.getElementById('narc-level').textContent = narcLevel;
+  document.getElementById('psyc-level').textContent = psycLevel;
+  document.getElementById('mach-level').textContent = machLevel;
+
+  // Trait bars (max 5 each)
+  document.getElementById('narc-bar').style.width = Math.min(narcLevel/5*100, 100) + '%';
+  document.getElementById('psyc-bar').style.width = Math.min(psycLevel/5*100, 100) + '%';
+  document.getElementById('mach-bar').style.width = Math.min(machLevel/5*100, 100) + '%';
+
+  // Prestige btn
+  document.getElementById('prestige-btn').disabled = souls < 10000;
+  document.getElementById('prestige-btn').textContent =
+    souls >= 10000
+      ? `⚡ PRESTIGE NOW — Ascend Beyond (×${prestigeCount+2} click power forever)`
+      : `⚡ PRESTIGE — Need ${(10000-Math.floor(souls)).toLocaleString()} more souls`;
+
+  // Auto-glow when passive income active
+  const btn = document.getElementById('btn-wrap');
+  if (soulsPerSecond > 0) btn.classList.add('auto-active');
+  else btn.classList.remove('auto-active');
+
+  checkMilestones();
+}
+
+// ── GAME LOOP ──
+let lastTick = Date.now();
+function gameTick() {
+  const now = Date.now();
+  const delta = (now - lastTick) / 1000;
+  lastTick = now;
+
+  if (soulsPerSecond > 0) {
+    const gained = soulsPerSecond * delta;
+    souls += gained;
+    totalSouls += gained;
+  }
+
+  renderUpgrades();
+  updateUI();
+}
+
+setInterval(gameTick, 100);
+
+// Init
+recalcStats();
+renderUpgrades();
+updateUI();
+</script>
+</body>
+</html>

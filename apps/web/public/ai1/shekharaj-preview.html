@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ultimate F1 Clicker</title>
+
+<style>
+
+body{
+background:#111;
+color:white;
+font-family:Arial;
+text-align:center;
+}
+
+#car{
+width:85%;
+max-width:900px;
+cursor:pointer;
+transition:transform .08s;
+}
+
+#car:active{
+transform:scale(.96);
+}
+
+#stats{
+font-size:22px;
+margin:20px;
+}
+
+button{
+cursor:pointer;
+}
+
+#shop{
+position:fixed;
+bottom:10px;
+right:10px;
+width:140px;
+background:rgba(20,20,20,.9);
+border:1px solid #555;
+border-radius:6px;
+padding:8px;
+font-size:12px;
+}
+
+#shop button{
+width:100%;
+margin-top:5px;
+padding:4px;
+font-size:12px;
+}
+
+.desc{
+font-size:10px;
+opacity:.8;
+margin-top:3px;
+}
+
+#tutorial{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:black;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+z-index:999;
+}
+
+.step{
+font-size:20px;
+margin:10px;
+}
+
+#startGame{
+margin-top:30px;
+padding:12px 25px;
+font-size:18px;
+background:#e10600;
+color:white;
+border:none;
+border-radius:6px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="tutorial">
+
+<h2>How To Play</h2>
+
+<div class="step">🏎 Click the car OR press SPACE</div>
+<div class="step">🔧 Upgrade pit crew multiplier</div>
+<div class="step">🏁 Unlock new F1 teams</div>
+<div class="step">👑 Reach the Senna level at 100,000 points</div>
+
+<button id="startGame">Start Racing</button>
+
+</div>
+
+<h1>Ultimate F1 Clicker</h1>
+
+<div id="stats">
+Level: <span id="team">McLaren</span><br>
+Points: <span id="points">0</span><br>
+Multiplier: <span id="multi">1x</span>
+</div>
+
+<img id="car">
+
+<br>
+<button id="resetBtn">Reset Progress</button>
+
+<div id="shop">
+
+<b>Pitstop</b>
+
+<div class="desc">
+Pit crew upgrade
+</div>
+
+<button id="buyMulti">
+Upgrade
+</button>
+
+<div class="desc">
+Cost: <span id="cost">50</span>
+</div>
+
+</div>
+
+<script>
+
+/* CAR IMAGES */
+
+const mclaren="https://media.formula1.com/image/upload/c_lfill,w_3392/q_auto/v1740000000/common/f1/2026/mclaren/2026mclarencarright.webp";
+const alpine="https://media.formula1.com/image/upload/c_lfill,h_224,q_auto/v1740000000/common/f1/2026/alpine/2026alpinecarright.webp";
+const redbull="https://media.formula1.com/image/upload/c_lfill,h_224,q_auto/v1740000000/common/f1/2026/redbullracing/2026redbullracingcarright.webp";
+const aston="https://media.formula1.com/image/upload/c_lfill,h_224,q_auto/v1740000000/common/f1/2026/astonmartin/2026astonmartincarright.webp";
+const williams="https://media.formula1.com/image/upload/c_lfill,h_224,q_auto/v1740000000/common/f1/2026/williams/2026williamscarright.webp";
+const ferrari="https://media.formula1.com/image/upload/c_lfill,h_224,q_auto/v1740000000/common/f1/2026/ferrari/2026ferraricarright.webp";
+const mercedes="https://media.formula1.com/image/upload/c_lfill,h_224,q_auto/v1740000000/common/f1/2026/mercedes/2026mercedescarright.webp";
+
+/* SENNA IMAGE EMBEDDED (SVG car so it always works) */
+
+const senna =
+"data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 300'>\
+<rect width='800' height='300' fill='black'/>\
+<rect x='100' y='180' width='600' height='60' fill='red'/>\
+<circle cx='220' cy='250' r='40' fill='white'/>\
+<circle cx='580' cy='250' r='40' fill='white'/>\
+<text x='400' y='120' font-size='60' text-anchor='middle' fill='yellow'>SENNA</text>\
+</svg>";
+
+/* LOAD SAVE */
+
+let points=Number(localStorage.getItem("points"))||0;
+let level=Number(localStorage.getItem("level"))||1;
+let multiplier=Number(localStorage.getItem("multi"))||1;
+let upgradeCost=Number(localStorage.getItem("cost"))||50;
+
+const car=document.getElementById("car");
+const pointsText=document.getElementById("points");
+const teamText=document.getElementById("team");
+const multiText=document.getElementById("multi");
+const costText=document.getElementById("cost");
+
+/* AUDIO */
+
+let audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+
+function engineSound(){
+
+let osc=audioCtx.createOscillator();
+let gain=audioCtx.createGain();
+
+osc.type="sawtooth";
+
+osc.frequency.setValueAtTime(120,audioCtx.currentTime);
+osc.frequency.exponentialRampToValueAtTime(900,audioCtx.currentTime+.2);
+
+osc.connect(gain);
+gain.connect(audioCtx.destination);
+
+gain.gain.setValueAtTime(.6,audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.25);
+
+osc.start();
+osc.stop(audioCtx.currentTime+.25);
+
+}
+
+function upgradeSound(){
+
+let osc=audioCtx.createOscillator();
+let gain=audioCtx.createGain();
+
+osc.type="triangle";
+
+osc.frequency.setValueAtTime(700,audioCtx.currentTime);
+osc.frequency.exponentialRampToValueAtTime(1200,audioCtx.currentTime+.2);
+
+osc.connect(gain);
+gain.connect(audioCtx.destination);
+
+gain.gain.setValueAtTime(.7,audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.25);
+
+osc.start();
+osc.stop(audioCtx.currentTime+.25);
+
+}
+
+/* UPDATE UI */
+
+function updateUI(){
+
+pointsText.textContent=points;
+multiText.textContent=multiplier+"x";
+costText.textContent=upgradeCost;
+
+if(level===1){teamText.textContent="McLaren";car.src=mclaren;}
+else if(level===2){teamText.textContent="Alpine";car.src=alpine;}
+else if(level===3){teamText.textContent="Red Bull";car.src=redbull;}
+else if(level===4){teamText.textContent="Aston Martin";car.src=aston;}
+else if(level===5){teamText.textContent="Williams";car.src=williams;}
+else if(level===6){teamText.textContent="Ferrari";car.src=ferrari;}
+else if(level===7){teamText.textContent="Mercedes";car.src=mercedes;}
+else if(level===8){teamText.textContent="Senna";car.src=senna;}
+
+}
+
+/* SAVE */
+
+function saveGame(){
+
+localStorage.setItem("points",points);
+localStorage.setItem("level",level);
+localStorage.setItem("multi",multiplier);
+localStorage.setItem("cost",upgradeCost);
+
+}
+
+/* CLICK */
+
+function clickCar(){
+
+engineSound();
+points+=multiplier;
+
+if(points>=100 && level===1){level=2;alert("Alpine Unlocked!");}
+else if(points>=200 && level===2){level=3;alert("Red Bull Unlocked!");}
+else if(points>=1000 && level===3){level=4;alert("Aston Martin Unlocked!");}
+else if(points>=5000 && level===4){level=5;alert("Williams Unlocked!");}
+else if(points>=10000 && level===5){level=6;alert("Ferrari Unlocked!");}
+else if(points>=50000 && level===6){level=7;alert("Mercedes Unlocked!");}
+else if(points>=100000 && level===7){level=8;alert("SENNA LEGEND LEVEL UNLOCKED!");}
+
+saveGame();
+updateUI();
+
+}
+
+car.onclick=clickCar;
+
+/* SPACE BAR SUPPORT */
+
+document.addEventListener("keydown",function(e){
+
+if(e.code==="Space"){
+e.preventDefault();
+clickCar();
+}
+
+});
+
+/* SHOP */
+
+document.getElementById("buyMulti").onclick=()=>{
+
+if(points>=upgradeCost){
+
+points-=upgradeCost;
+multiplier*=2;
+upgradeCost*=2;
+
+upgradeSound();
+
+saveGame();
+updateUI();
+
+}else{
+
+alert("Not enough points");
+
+}
+
+};
+
+/* RESET */
+
+document.getElementById("resetBtn").onclick=()=>{
+
+points=0;
+level=1;
+multiplier=1;
+upgradeCost=50;
+
+saveGame();
+updateUI();
+
+};
+
+/* START */
+
+document.getElementById("startGame").onclick=()=>{
+document.getElementById("tutorial").style.display="none";
+};
+
+updateUI();
+
+</script>
+
+</body>
+</html>

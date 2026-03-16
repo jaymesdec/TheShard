@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duck Hunt Complete</title>
+<style>
+/* General page styling */
+body { margin:0; padding:0; overflow:hidden; background:#87ceeb; font-family:Arial,sans-serif; }
+
+/* Game area with grass and sky */
+#gameArea { position:relative; width:100vw; height:100vh; background:linear-gradient(to top,#228B22 50%,#87ceeb 50%); }
+
+/* Duck styling */
+.duck { 
+    position:absolute; width:50px; height:50px; border-radius:50%; 
+    display:flex; justify-content:center; align-items:center; font-size:28px; cursor:pointer; 
+}
+.duck::before { content:'🦆'; }
+.shot { transform:rotate(90deg); transition:top 1s linear; }
+
+/* Scoreboard */
+#scoreBoard { position:absolute; top:10px; left:10px; background:rgba(255,255,255,0.7); padding:10px; border-radius:8px; font-size:20px; font-weight:bold; }
+
+/* Gun display */
+#gunContainer { position:absolute; bottom:50px; left:10px; display:flex; align-items:center; gap:10px;}
+#gun { width:60px; height:20px; background-color:brown; border-radius:5px; position:relative;}
+#gun::after { content:''; width:30px; height:6px; background:black; position:absolute; top:7px; left:60px; border-radius:3px;}
+#gunInfo { display:flex; flex-direction:column; font-size:14px; }
+
+/* Shoot button in center */
+#shootButton { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); padding:20px 40px; background:red; color:white; font-size:24px; border:none; border-radius:12px; cursor:pointer; font-weight:bold; }
+
+/* Shop modal */
+#shop,#merchant { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:400px; padding:20px; background:#fff; border:2px solid #333; display:none; border-radius:10px;}
+#shop h2,#merchant h2 { margin-top:0; text-align:center;}
+#shop button,#merchant button { padding:10px; margin:10px; cursor:pointer; }
+.shopGun { display:flex; align-items:center; gap:10px; margin:10px 0;}
+.shopGun div { width:40px; height:15px; border-radius:3px; }
+#merchantButtons button { margin:5px; padding:8px; cursor:pointer; }
+
+/* Controls buttons at bottom right */
+#controls {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    gap: 10px;
+    font-size: 16px;
+}
+#controls button {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    background-color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div id="gameArea">
+    <div id="scoreBoard">Score: 0 | Cash: $0</div>
+
+    <!-- Gun Display -->
+    <div id="gunContainer">
+        <div id="gun"></div>
+        <div id="gunInfo">
+            <span id="gunName">Basic Gun</span>
+            <span id="gunAbility">Shoots 1 duck</span>
+        </div>
+    </div>
+
+    <!-- Shoot Button -->
+    <button id="shootButton">SHOOT</button>
+
+    <!-- Shop -->
+    <div id="shop">
+        <h2>Gun Shop</h2>
+        <div id="gunList"></div>
+        <button onclick="closeShop()">Close Shop</button>
+    </div>
+
+    <!-- Merchant -->
+    <div id="merchant">
+        <h2>Merchant</h2>
+        <p>Sell ducks by color or sell all:</p>
+        <div id="merchantButtons"></div>
+        <button onclick="closeMerchant()">Close Merchant</button>
+    </div>
+
+    <!-- Controls buttons for Shop and Merchant -->
+    <div id="controls">
+        <button onclick="openShop()">Shop (Q)</button>
+        <button onclick="openMerchant()">Merchant (E)</button>
+    </div>
+</div>
+
+<script>
+const gameArea = document.getElementById('gameArea');
+const scoreBoard = document.getElementById('scoreBoard');
+const gunElement = document.getElementById('gun');
+const gunNameSpan = document.getElementById('gunName');
+const gunAbilitySpan = document.getElementById('gunAbility');
+const shop = document.getElementById('shop');
+const merchant = document.getElementById('merchant');
+const gunListDiv = document.getElementById('gunList');
+const shootButton = document.getElementById('shootButton');
+const merchantButtonsDiv = document.getElementById('merchantButtons');
+
+let score=0, cash=0, ducks=[], deadDucks=[];
+
+// Guns
+const guns=[
+    {name:"Basic Gun", ability:1, color:"brown", cost:0},
+    {name:"Rapid Gun", ability:2, color:"red", cost:50},
+    {name:"Mega Gun", ability:3, color:"blue", cost:100},
+    {name:"Ultra Gun", ability:5, color:"purple", cost:200},
+    {name:"Lightning Gun", ability:10, color:"yellow", cost:500}
+];
+let currentGun=guns[0];
+
+// Spawn a single duck
+function spawnDuck(){
+    const duck = document.createElement('div');
+    duck.classList.add('duck');
+
+    // Determine duck type/value
+    const rand = Math.random();
+    if(rand < 0.5){ duck.dataset.type="grey"; duck.dataset.value=3; duck.style.border='3px solid grey'; }
+    else if(rand < 0.8){ duck.dataset.type="blue"; duck.dataset.value=5; duck.style.border='3px solid blue'; }
+    else { duck.dataset.type="yellow"; duck.dataset.value=10; duck.style.border='3px solid orange'; }
+
+    const fromLeft = Math.random() < 0.5;
+    const startX = fromLeft ? -60 : window.innerWidth + 60;
+    const topY = Math.random()*(window.innerHeight-100);
+    duck.style.left = startX + 'px';
+    duck.style.top = topY + 'px';
+    gameArea.appendChild(duck);
+    ducks.push(duck);
+
+    const speed = 3 + Math.random()*4; // 3-7 px/frame
+    let currentX = startX;
+    const direction = fromLeft ? 1 : -1;
+
+    const flyInterval = setInterval(()=>{
+        currentX += speed*direction;
+        duck.style.left = currentX+'px';
+        if((direction===1 && currentX>window.innerWidth+60) || (direction===-1 && currentX<-60)){
+            clearInterval(flyInterval);
+            if(gameArea.contains(duck)) gameArea.removeChild(duck);
+            ducks = ducks.filter(d=>d!==duck);
+        }
+    },16);
+
+    duck.addEventListener('click',()=>{ shootDucks(duck); });
+}
+
+// Spawn 3 ducks every 0.5 seconds
+setInterval(()=>{ for(let i=0;i<3;i++) spawnDuck(); },500);
+
+// Shoot random ducks
+function shootRandomDucks(){
+    const targets = ducks.filter(d=>!d.classList.contains('shot'));
+    if(targets.length===0) return;
+    const selected=[];
+    for(let i=0;i<currentGun.ability;i++){
+        if(targets.length===0) break;
+        const idx = Math.floor(Math.random()*targets.length);
+        selected.push(targets[idx]);
+        targets.splice(idx,1);
+    }
+    selected.forEach(duck=>shootDuck(duck));
+}
+
+// Shoot a duck
+function shootDucks(duck){ shootDuck(duck); }
+
+function shootDuck(duck){
+    if(duck.classList.contains('shot')) return;
+    duck.classList.add('shot');
+    deadDucks.push(duck);
+    let topPos=parseFloat(duck.style.top);
+    const fallInterval=setInterval(()=>{
+        topPos+=5;
+        duck.style.top=topPos+'px';
+        if(topPos>window.innerHeight){
+            clearInterval(fallInterval);
+            if(gameArea.contains(duck)) gameArea.removeChild(duck);
+            ducks=ducks.filter(d=>d!==duck);
+        }
+    },16);
+    score++;
+    updateScore();
+}
+
+function updateScore(){ scoreBoard.textContent=`Score: ${score} | Cash: $${cash}`; }
+
+// Shoot button
+shootButton.addEventListener('click', shootRandomDucks);
+
+// Key controls
+document.addEventListener('keydown', e=>{
+    if(e.key.toLowerCase()==='q') openShop();
+    if(e.key.toLowerCase()==='e') openMerchant();
+});
+
+// Shop functions
+function openShop(){
+    shop.style.display='block';
+    gunListDiv.innerHTML='';
+    guns.forEach((g,i)=>{
+        const gunDiv = document.createElement('div');
+        gunDiv.classList.add('shopGun');
+        gunDiv.innerHTML = `<div style="background:${g.color}"></div>
+        <span>${g.name} - Shoots ${g.ability} duck(s) - $${g.cost}</span>
+        <button onclick="buyGun(${i})">Buy</button>`;
+        gunListDiv.appendChild(gunDiv);
+    });
+}
+function closeShop(){ shop.style.display='none'; }
+function buyGun(index){
+    const gun=guns[index];
+    if(cash>=gun.cost){
+        cash -= gun.cost;
+        currentGun = gun;
+        gunElement.style.backgroundColor=gun.color;
+        gunNameSpan.textContent=gun.name;
+        gunAbilitySpan.textContent=`Shoots ${gun.ability} duck(s)`;
+        updateScore();
+        closeShop();
+    } else alert("Not enough cash!");
+}
+
+// Merchant functions
+function openMerchant(){
+    merchant.style.display='block';
+    updateMerchantButtons();
+}
+function closeMerchant(){ merchant.style.display='none'; }
+
+function updateMerchantButtons(){
+    merchantButtonsDiv.innerHTML='';
+
+    // Add Sell All button
+    if(deadDucks.length>0){
+        const sellAllBtn=document.createElement('button');
+        sellAllBtn.textContent=`Sell All Ducks`;
+        sellAllBtn.onclick = ()=>sellColor('all');
+        merchantButtonsDiv.appendChild(sellAllBtn);
+    }
+
+    // Count ducks by type
+    const types = ['grey','blue','yellow'];
+    types.forEach(type=>{
+        const count = deadDucks.filter(d=>d.dataset.type===type).length;
+        if(count>0){
+            const value = deadDucks.find(d=>d.dataset.type===type).dataset.value;
+            const btn = document.createElement('button');
+            btn.textContent=`Sell all ${type} ducks ($${value} each)`;
+            btn.onclick = ()=>sellColor(type);
+            merchantButtonsDiv.appendChild(btn);
+        }
+    });
+
+    if(deadDucks.length===0){
+        merchantButtonsDiv.textContent='No ducks to sell!';
+    }
+}
+
+// Sell ducks by color or all
+function sellColor(type){
+    let sold=[];
+    if(type==='all'){
+        sold = [...deadDucks];
+        sold.forEach(d=>cash += parseInt(d.dataset.value));
+        sold.forEach(d=>{ if(gameArea.contains(d)) gameArea.removeChild(d); });
+        deadDucks=[];
+    } else {
+        sold = deadDucks.filter(d=>d.dataset.type===type);
+        sold.forEach(d=>cash += parseInt(d.dataset.value));
+        sold.forEach(d=>{ if(gameArea.contains(d)) gameArea.removeChild(d); });
+        deadDucks = deadDucks.filter(d=>d.dataset.type!==type);
+    }
+    updateScore();
+    updateMerchantButtons();
+}
+</script>
+</body>
+</html>
