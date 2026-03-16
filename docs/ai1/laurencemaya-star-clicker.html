@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--gold:#FFD700;--gold2:#FFA500;--cyan:#00FFFF;--purple:#9B30FF;--bg:#020010;--text:#e8e8ff}
+body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:none}
+canvas#starfield{position:fixed;inset:0;z-index:0;pointer-events:none}
+#cursor{position:fixed;width:22px;height:22px;border:2px solid var(--gold);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);box-shadow:0 0 12px var(--gold);transition:width .1s,height .1s}
+#game{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:480px;padding:12px}
+h1{font-family:'Orbitron',monospace;font-size:clamp(1.3rem,4vw,2rem);font-weight:900;letter-spacing:4px;background:linear-gradient(135deg,var(--gold),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center}
+#score-display{font-family:'Orbitron',monospace;font-size:clamp(.9rem,2.5vw,1.1rem);color:var(--cyan);letter-spacing:2px;text-align:center}
+#score-display span{color:var(--gold);font-weight:700;font-size:1.6em}
+#star-btn{position:relative;width:clamp(140px,32vw,175px);height:clamp(140px,32vw,175px);background:none;border:none;cursor:none;outline:none;transition:transform .1s;filter:drop-shadow(0 0 22px var(--gold))}
+#star-btn:active{transform:scale(0.9)}
+#star-svg{width:100%;height:100%;transition:filter .15s}
+#star-btn.flash #star-svg{filter:brightness(2.5) drop-shadow(0 0 40px #fff)}
+#powerups{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:420px}
+.pu-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,215,0,.25);border-radius:12px;padding:8px 10px;text-align:center;min-width:85px;transition:border-color .3s,background .3s,box-shadow .3s}
+.pu-card.unlocked{border-color:var(--gold);background:rgba(255,215,0,.12);box-shadow:0 0 16px rgba(255,215,0,.35);animation:pulseCard .6s ease}
+.pu-card.locked{opacity:.35}
+@keyframes pulseCard{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.pu-icon{font-size:1.4rem}.pu-name{font-family:'Orbitron',monospace;font-size:.5rem;letter-spacing:1px;color:var(--gold);margin:2px 0}.pu-req{font-size:.62rem;color:#aaa}
+#progress-wrap{width:100%;max-width:320px}
+#progress-label{font-size:.65rem;color:#aaa;letter-spacing:1px;margin-bottom:4px;font-family:'Orbitron',monospace}
+#progress-bar-bg{width:100%;height:9px;background:rgba(255,255,255,.08);border-radius:10px;overflow:hidden;border:1px solid rgba(255,215,0,.2)}
+#progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--purple),var(--gold),var(--cyan));border-radius:10px;transition:width .3s}
+#multi-badge{font-family:'Orbitron',monospace;font-size:.7rem;padding:4px 14px;border-radius:20px;background:rgba(0,255,255,.1);border:1px solid var(--cyan);color:var(--cyan);letter-spacing:2px;display:none}
+#multi-badge.show{display:block}
+.float-txt{position:fixed;font-family:'Orbitron',monospace;font-weight:700;pointer-events:none;z-index:9990;animation:floatUp .9s ease-out forwards;color:var(--gold);text-shadow:0 0 10px var(--gold)}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(1.5)}}
+.spark{position:fixed;pointer-events:none;z-index:9980;border-radius:50%;animation:sparkFly .7s ease-out forwards}
+@keyframes sparkFly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0)}}
+#modal{position:fixed;inset:0;background:rgba(0,0,10,.88);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}
+#modal.show{display:flex}
+#modal-box{background:linear-gradient(135deg,#0a0030,#020018);border:1px solid var(--gold);border-radius:20px;padding:30px 28px;max-width:420px;width:100%;text-align:center;box-shadow:0 0 60px rgba(255,215,0,.25),0 0 120px rgba(139,0,255,.2);animation:modalIn .4s ease}
+@keyframes modalIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+#modal-icon{font-size:3rem;margin-bottom:10px}
+#modal-title{font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:900;color:var(--gold);letter-spacing:3px;margin-bottom:10px}
+#modal-body{font-size:.9rem;color:#ccd;line-height:1.6;margin-bottom:20px}
+#modal-close{font-family:'Orbitron',monospace;background:linear-gradient(135deg,var(--purple),var(--gold2));color:#fff;border:none;padding:10px 28px;border-radius:30px;font-size:.8rem;letter-spacing:2px;cursor:pointer;transition:transform .15s,box-shadow .15s}
+#modal-close:hover{transform:scale(1.05);box-shadow:0 0 20px var(--gold)}
+#combo{font-family:'Orbitron',monospace;font-size:.75rem;color:var(--purple);letter-spacing:2px;min-height:18px;text-align:center}
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<div id="cursor"></div>
+
+<div id="game">
+  <h1>✦ STAR CLICKER ✦</h1>
+  <div id="score-display">STARS: <span id="score">0</span></div>
+  <div id="multi-badge">⚡ 2× MULTIPLIER ACTIVE</div>
+  <div id="combo"></div>
+
+  <button id="star-btn" onclick="clickStar(event)">
+    <svg id="star-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="sg" cx="50%" cy="50%" r="55%">
+          <stop offset="0%" stop-color="#FFFDE7"/>
+          <stop offset="35%" stop-color="#FFD700"/>
+          <stop offset="75%" stop-color="#FFA500"/>
+          <stop offset="100%" stop-color="#8B00FF" stop-opacity=".6"/>
+        </radialGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <polygon id="star-poly" points="100,10 120,70 185,70 133,108 153,168 100,132 47,168 67,108 15,70 80,70"
+        fill="url(#sg)" filter="url(#glow)" stroke="#FFD700" stroke-width="1.5" stroke-opacity=".7"/>
+      <!-- inner sparkle lines -->
+      <line x1="100" y1="0" x2="100" y2="30" stroke="#fff" stroke-width="1.5" stroke-opacity=".5"/>
+      <line x1="100" y1="170" x2="100" y2="200" stroke="#fff" stroke-width="1.5" stroke-opacity=".3"/>
+      <line x1="0" y1="100" x2="30" y2="100" stroke="#fff" stroke-width="1.5" stroke-opacity=".3"/>
+      <line x1="170" y1="100" x2="200" y2="100" stroke="#fff" stroke-width="1.5" stroke-opacity=".3"/>
+    </svg>
+  </button>
+
+  <div id="progress-wrap">
+    <div id="progress-label">NEXT POWER-UP: <span id="next-label">100 clicks</span></div>
+    <div id="progress-bar-bg"><div id="progress-bar"></div></div>
+  </div>
+
+  <div id="powerups">
+    <div class="pu-card locked" id="pu-100"><div class="pu-icon">🌟</div><div class="pu-name">STAR FACT</div><div class="pu-req">100 clicks</div></div>
+    <div class="pu-card locked" id="pu-250"><div class="pu-icon">⚡</div><div class="pu-name">2× POWER</div><div class="pu-req">250 clicks</div></div>
+    <div class="pu-card locked" id="pu-500"><div class="pu-icon">🌌</div><div class="pu-name">GALAXY FACT</div><div class="pu-req">500 clicks</div></div>
+    <div class="pu-card locked" id="pu-750"><div class="pu-icon">🔥</div><div class="pu-name">SUPERNOVA</div><div class="pu-req">750 clicks</div></div>
+    <div class="pu-card locked" id="pu-1000"><div class="pu-icon">👑</div><div class="pu-name">STAR LORD</div><div class="pu-req">1000 clicks</div></div>
+  </div>
+</div>
+
+<div id="modal" class="modal">
+  <div id="modal-box">
+    <div id="modal-icon">🌟</div>
+    <div id="modal-title">POWER-UP UNLOCKED!</div>
+    <div id="modal-body">You did it!</div>
+    <button id="modal-close" onclick="closeModal()">AWESOME!</button>
+  </div>
+</div>
+
+<script>
+// ── Audio Engine ──────────────────────────────────────────────
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let ctx;
+function getCtx(){if(!ctx)ctx=new AudioContext();if(ctx.state==='suspended')ctx.resume();return ctx;}
+
+function playClick(multiplier){
+  const ac=getCtx();
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.connect(g);g.connect(ac.destination);
+  o.frequency.setValueAtTime(multiplier>1?880:660,ac.currentTime);
+  o.frequency.exponentialRampToValueAtTime(multiplier>1?1400:900,ac.currentTime+0.08);
+  g.gain.setValueAtTime(.28,ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+0.18);
+  o.start();o.stop(ac.currentTime+0.18);
+}
+
+function playUnlock(){
+  const ac=getCtx();
+  [523,659,784,1047].forEach((f,i)=>{
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);
+    o.frequency.value=f;o.type='sine';
+    const t=ac.currentTime+i*0.13;
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.3,t+.05);
+    g.gain.exponentialRampToValueAtTime(.001,t+.35);
+    o.start(t);o.stop(t+.35);
+  });
+}
+
+function playSupernova(){
+  const ac=getCtx();
+  const o=ac.createOscillator(),g=ac.createGain(),dist=ac.createWaveShaper();
+  const curve=new Float32Array(256);
+  for(let i=0;i<256;i++){const x=i*2/256-1;curve[i]=x*(Math.abs(x)<.5?2:1);}
+  dist.curve=curve;
+  o.connect(dist);dist.connect(g);g.connect(ac.destination);
+  o.frequency.setValueAtTime(150,ac.currentTime);
+  o.frequency.exponentialRampToValueAtTime(60,ac.currentTime+.5);
+  g.gain.setValueAtTime(.5,ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.7);
+  o.start();o.stop(ac.currentTime+.7);
+}
+
+// ── Starfield Canvas ─────────────────────────────────────────
+const canvas=document.getElementById('starfield');
+const c=canvas.getContext('2d');
+let stars=[];
+function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;initStars();}
+function initStars(){stars=[];for(let i=0;i<180;i++)stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*1.5+.3,s:Math.random()*.5+.1,b:Math.random()});}
+function drawStars(){
+  c.clearRect(0,0,canvas.width,canvas.height);
+  stars.forEach(s=>{
+    s.b+=.005*s.s;
+    const a=(.5+.5*Math.sin(s.b))*0.85+0.15;
+    c.beginPath();c.arc(s.x,s.y,s.r,0,Math.PI*2);
+    c.fillStyle=`rgba(255,255,220,${a})`;c.fill();
+  });
+  requestAnimationFrame(drawStars);
+}
+window.addEventListener('resize',resizeCanvas);
+resizeCanvas();drawStars();
+
+// ── Cursor ───────────────────────────────────────────────────
+const cur=document.getElementById('cursor');
+document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';});
+
+// ── Game State ────────────────────────────────────────────────
+let score=0, multiplier=1, comboTimer=null, comboCount=0;
+const MILESTONES=[100,250,500,750,1000];
+const unlocked=new Set();
+
+const POWERUP_DATA={
+  100:{icon:'🌟',title:'STAR FACT UNLOCKED!',body:'<b>UY Scuti</b> is the largest known star! It\'s so enormous that if placed at the center of our solar system, its surface would extend beyond the orbit of Jupiter — over <b>1,700 times the Sun\'s radius</b>. It\'s a red hypergiant, roughly 9,500 light-years away in the constellation Scutum. 🔭'},
+  250:{icon:'⚡',title:'2× MULTIPLIER ACTIVE!',body:'You\'ve unlocked <b>Double Star Power</b>! Every click now counts for <b>2 stars</b>. In astronomy, a double star system is two stars orbiting each other — like Sirius A & B, just 8.6 light-years away! Keep clicking, stargazer! ⚡'},
+  500:{icon:'🌌',title:'GALAXY FACT UNLOCKED!',body:'Our galaxy, the <b>Milky Way</b>, contains an estimated <b>100–400 BILLION stars</b>. The largest known galaxy, <b>IC 1101</b>, stretches over <b>6 million light-years</b> across and contains roughly 100 TRILLION stars. Mind-blowing, right? 🌌'},
+  750:{icon:'🔥',title:'SUPERNOVA EVENT!',body:'A <b>supernova</b> is one of the most powerful explosions in the universe. When a massive star explodes, it can outshine an entire galaxy for weeks! The explosion releases more energy in seconds than our Sun will emit in its entire <b>10-billion-year</b> lifetime. 💥'},
+  1000:{icon:'👑',title:'YOU ARE STAR LORD!',body:'Incredible! You\'ve reached <b>1,000 stars</b>! 🏆 Did you know the most luminous star known is <b>R136a1</b>? It\'s about <b>8.7 million times</b> brighter than our Sun and 315 times more massive. You\'ve clicked your way to stellar greatness! 🌠'}
+};
+
+function nextMilestone(){return MILESTONES.find(m=>!unlocked.has(m))||null;}
+
+function updateProgress(){
+  const next=nextMilestone();
+  const bar=document.getElementById('progress-bar');
+  const lbl=document.getElementById('next-label');
+  if(!next){bar.style.width='100%';lbl.textContent='ALL UNLOCKED ✦';return;}
+  const prev=MILESTONES[MILESTONES.indexOf(next)-1]||0;
+  const pct=Math.min(((score-prev)/(next-prev))*100,100);
+  bar.style.width=pct+'%';
+  lbl.textContent=next+' clicks';
+}
+
+function checkMilestones(){
+  MILESTONES.forEach(m=>{
+    if(score>=m && !unlocked.has(m)){
+      unlocked.add(m);
+      const card=document.getElementById('pu-'+m);
+      if(card){card.classList.remove('locked');card.classList.add('unlocked');}
+      if(m===250){multiplier=2;document.getElementById('multi-badge').classList.add('show');}
+      if(m===750)supernovaEffect();
+      const d=POWERUP_DATA[m];
+      showModal(d.icon,d.title,d.body);
+      playUnlock();
+    }
+  });
+}
+
+// ── Click Handler ─────────────────────────────────────────────
+function clickStar(e){
+  score+=multiplier;
+  document.getElementById('score').textContent=score;
+  checkMilestones();
+  updateProgress();
+
+  // combo
+  comboCount++;
+  clearTimeout(comboTimer);
+  comboTimer=setTimeout(()=>{comboCount=0;document.getElementById('combo').textContent='';},800);
+  if(comboCount>3){
+    document.getElementById('combo').textContent='🔥 COMBO x'+comboCount+'!';
+  }
+
+  // flash
+  const btn=document.getElementById('star-btn');
+  btn.classList.add('flash');
+  setTimeout(()=>btn.classList.remove('flash'),150);
+
+  // float text
+  spawnFloat(e.clientX,e.clientY,'+'+multiplier);
+
+  // sparks
+  for(let i=0;i<10;i++)spawnSpark(e.clientX,e.clientY);
+
+  playClick(multiplier);
+}
+
+function spawnFloat(x,y,txt){
+  const el=document.createElement('div');
+  el.className='float-txt';
+  el.textContent=txt;
+  el.style.left=(x-10)+'px';
+  el.style.top=(y-20)+'px';
+  el.style.fontSize=(multiplier>1?'1.4rem':'1rem');
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),900);
+}
+
+function spawnSpark(x,y){
+  const el=document.createElement('div');
+  el.className='spark';
+  const size=Math.random()*6+3;
+  const angle=Math.random()*Math.PI*2;
+  const dist=Math.random()*60+20;
+  const colors=['#FFD700','#FFA500','#FF69B4','#00FFFF','#FFFFFF','#9B30FF'];
+  el.style.cssText=`width:${size}px;height:${size}px;left:${x}px;top:${y}px;background:${colors[Math.floor(Math.random()*colors.length)]};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),700);
+}
+
+function supernovaEffect(){
+  playSupernova();
+  // big flash
+  const flash=document.createElement('div');
+  flash.style.cssText='position:fixed;inset:0;background:radial-gradient(circle,#fff8,transparent 70%);z-index:9900;pointer-events:none;animation:flashOut .6s ease forwards';
+  const style=document.createElement('style');
+  style.textContent='@keyframes flashOut{0%{opacity:1}100%{opacity:0}}';
+  document.head.appendChild(style);
+  document.body.appendChild(flash);
+  setTimeout(()=>{flash.remove();style.remove();},600);
+  // mass sparks
+  const cx=window.innerWidth/2, cy=window.innerHeight/2;
+  for(let i=0;i<60;i++)setTimeout(()=>spawnSpark(cx+Math.random()*200-100,cy+Math.random()*200-100),Math.random()*400);
+}
+
+// ── Modal ─────────────────────────────────────────────────────
+function showModal(icon,title,body){
+  document.getElementById('modal-icon').textContent=icon;
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=body;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+
+// init
+updateProgress();
+</script>
+</body>
+</html>

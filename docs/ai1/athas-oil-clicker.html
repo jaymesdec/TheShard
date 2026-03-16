@@ -1,0 +1,499 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .game {
+    font-family: 'Barlow', sans-serif;
+    background: #0d0d0d;
+    min-height: 520px;
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 12px;
+    color: #e8e0d0;
+  }
+
+  .header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .game-title {
+    font-family: 'Bebas Neue', monospace;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: #d4a017;
+    text-shadow: 0 0 20px rgba(212,160,23,0.3);
+  }
+
+  .clicker-panel {
+    background: #161616;
+    border-radius: 12px;
+    border: 0.5px solid #2a2a2a;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .oil-count {
+    text-align: center;
+  }
+
+  .oil-count .big-num {
+    font-family: 'Bebas Neue', monospace;
+    font-size: 36px;
+    color: #d4a017;
+    letter-spacing: 2px;
+    line-height: 1.1;
+  }
+
+  .oil-count .unit {
+    font-size: 12px;
+    color: #666;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .pump-btn {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid #d4a017;
+    cursor: pointer;
+    font-size: 58px;
+    background: radial-gradient(circle at 35% 35%, #2a2a2a, #0d0d0d);
+    box-shadow: 0 0 30px rgba(212,160,23,0.2), inset 0 2px 4px rgba(255,255,255,0.05);
+    transition: transform 0.08s, box-shadow 0.08s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    position: relative;
+  }
+
+  .pump-btn:active {
+    transform: scale(0.91) translateY(4px);
+    box-shadow: 0 0 10px rgba(212,160,23,0.1);
+  }
+
+  .pump-btn:hover {
+    transform: scale(1.04);
+    box-shadow: 0 0 40px rgba(212,160,23,0.35), inset 0 2px 4px rgba(255,255,255,0.05);
+  }
+
+  .stats-bar {
+    background: #1e1e1e;
+    border-radius: 8px;
+    border: 0.5px solid #2a2a2a;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #888;
+    text-align: center;
+    width: 100%;
+    line-height: 1.9;
+  }
+
+  .stats-bar .val {
+    font-weight: 700;
+    color: #d4a017;
+    font-size: 14px;
+  }
+
+  .money-display {
+    background: #1a1a0d;
+    border: 0.5px solid #3a3010;
+    border-radius: 8px;
+    padding: 8px 14px;
+    width: 100%;
+    text-align: center;
+    font-size: 11px;
+    color: #887a40;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .money-display .money-val {
+    font-family: 'Bebas Neue', monospace;
+    font-size: 20px;
+    color: #b8e070;
+    display: block;
+    letter-spacing: 2px;
+  }
+
+  .shop-panel {
+    background: #161616;
+    border-radius: 12px;
+    border: 0.5px solid #2a2a2a;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    overflow-y: auto;
+    max-height: 460px;
+  }
+
+  .shop-panel::-webkit-scrollbar { width: 4px; }
+  .shop-panel::-webkit-scrollbar-track { background: #111; }
+  .shop-panel::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+  .shop-title {
+    font-family: 'Bebas Neue', monospace;
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: #666;
+    padding-bottom: 8px;
+    border-bottom: 0.5px solid #222;
+  }
+
+  .shop-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 0.5px solid #252525;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    background: #1a1a1a;
+  }
+
+  .shop-item:hover:not(.disabled) {
+    background: #1e1a0a;
+    border-color: #5a4a10;
+  }
+
+  .shop-item.disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .shop-item .icon { font-size: 22px; width: 28px; text-align: center; flex-shrink: 0; }
+
+  .shop-item .info { flex: 1; min-width: 0; }
+
+  .shop-item .item-name {
+    font-weight: 700;
+    font-size: 13px;
+    color: #e8e0d0;
+  }
+
+  .shop-item .item-desc {
+    font-size: 10px;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .shop-item .right { text-align: right; flex-shrink: 0; }
+
+  .shop-item .price {
+    font-size: 12px;
+    font-weight: 700;
+    color: #d4a017;
+  }
+
+  .shop-item .owned {
+    font-size: 10px;
+    color: #555;
+    margin-top: 1px;
+  }
+
+  .upgrades-section {
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 0.5px solid #222;
+  }
+
+  .upgrade-title {
+    font-family: 'Bebas Neue', monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: #555;
+    margin-bottom: 6px;
+  }
+
+  .upgrade-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 0.5px solid #252525;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    background: #1a1a1a;
+    margin-bottom: 5px;
+  }
+
+  .upgrade-item:hover:not(.disabled):not(.bought) {
+    background: #0d1a0d;
+    border-color: #2a4a2a;
+  }
+
+  .upgrade-item.disabled { opacity: 0.38; cursor: not-allowed; }
+  .upgrade-item.bought { opacity: 0.3; pointer-events: none; }
+
+  .upgrade-item .u-icon { font-size: 15px; }
+  .upgrade-item .u-name { font-size: 12px; font-weight: 700; flex: 1; color: #e8e0d0; }
+  .upgrade-item .u-desc { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+  .upgrade-item .u-price { font-size: 11px; font-weight: 700; color: #b8e070; white-space: nowrap; }
+  .upgrade-item.bought .u-price { color: #444; text-decoration: line-through; }
+
+  .float {
+    position: fixed;
+    pointer-events: none;
+    font-family: 'Bebas Neue', monospace;
+    font-size: 18px;
+    letter-spacing: 1px;
+    color: #d4a017;
+    animation: floatUp 0.9s ease-out forwards;
+    z-index: 999;
+  }
+
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-70px) scale(0.7); }
+  }
+
+  .drip {
+    position: fixed;
+    pointer-events: none;
+    width: 8px;
+    height: 8px;
+    background: #1a1a2e;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    animation: dripFall 0.7s ease-in forwards;
+    z-index: 998;
+  }
+
+  @keyframes dripFall {
+    0% { opacity: 0.8; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(50px) scale(0.5); }
+  }
+</style>
+
+<div class="game" id="game">
+  <div class="header">
+    <div class="game-title">⛽ BLACK GOLD INC.</div>
+  </div>
+
+  <div class="clicker-panel">
+    <div class="oil-count">
+      <div class="big-num" id="oil-display">0</div>
+      <div class="unit">barrels extracted</div>
+    </div>
+
+    <div class="money-display">
+      Revenue
+      <span class="money-val" id="money-display">$0</span>
+    </div>
+
+    <button class="pump-btn" id="main-pump">🛢️</button>
+
+    <div class="stats-bar">
+      <span class="val" id="bps-display">0</span> barrels/sec<br>
+      +<span class="val" id="bpc-display">1</span> per pump &nbsp;·&nbsp; $<span class="val" id="price-display">50</span>/barrel
+    </div>
+  </div>
+
+  <div class="shop-panel" id="shop">
+    <div class="shop-title">Operations</div>
+    <div id="shop-items"></div>
+    <div class="upgrades-section">
+      <div class="upgrade-title">Technology</div>
+      <div id="upgrade-items"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const state = {
+  barrels: 0,
+  totalExtracted: 0,
+  money: 0,
+  bps: 0,
+  bpc: 1,
+  pricePerBarrel: 50,
+  owned: {},
+  boughtUpgrades: new Set()
+};
+
+const buildings = [
+  { id:'handpump',   icon:'🪣', name:'Hand Pump',       desc:'+0.2 BPS · Manual pump',        baseCost:20,    baseBps:0.2  },
+  { id:'rig',        icon:'⚙️', name:'Drill Rig',        desc:'+2 BPS · Basic drilling',       baseCost:150,   baseBps:2    },
+  { id:'pumpjack',   icon:'🏗️', name:'Pump Jack',        desc:'+12 BPS · Nodding donkey',      baseCost:700,   baseBps:12   },
+  { id:'refinery',   icon:'🏭', name:'Refinery',         desc:'+80 BPS · Processes crude',     baseCost:3500,  baseBps:80   },
+  { id:'offshore',   icon:'🛳️', name:'Offshore Platform',desc:'+500 BPS · Deepwater rig',      baseCost:18000, baseBps:500  },
+  { id:'pipeline',   icon:'🔩', name:'Pipeline Network', desc:'+3000 BPS · Continental reach', baseCost:90000, baseBps:3000 },
+  { id:'cartel',     icon:'💼', name:'Oil Cartel',       desc:'+20000 BPS · Market control',   baseCost:600000,baseBps:20000},
+];
+
+const upgrades = [
+  { id:'u1', icon:'🔧', name:'Stronger Pump',      cost:200,    desc:'2x pump power',                  effect:()=>{ state.bpc *= 2; }},
+  { id:'u2', icon:'⛏️', name:'Diamond Drill Bit',  cost:1000,   desc:'Drill rigs 3x faster',           effect:()=>{ multiplyBldBps('rig', 3); }},
+  { id:'u3', icon:'💧', name:'Enhanced Extraction', cost:4000,   desc:'Pump jacks 2x output',           effect:()=>{ multiplyBldBps('pumpjack', 2); }},
+  { id:'u4', icon:'🤖', name:'Automated Pumping',   cost:8000,   desc:'4x pump power',                  effect:()=>{ state.bpc *= 4; }},
+  { id:'u5', icon:'📡', name:'Seismic Mapping',     cost:20000,  desc:'Offshore rigs 3x output',        effect:()=>{ multiplyBldBps('offshore', 3); }},
+  { id:'u6', icon:'🧪', name:'Hydraulic Fracturing',cost:50000,  desc:'Refineries 2x output',           effect:()=>{ multiplyBldBps('refinery', 2); }},
+  { id:'u7', icon:'📈', name:'Market Manipulation', cost:120000, desc:'+$25 per barrel',                effect:()=>{ state.pricePerBarrel += 25; }},
+  { id:'u8', icon:'🛰️', name:'Satellite Surveying', cost:300000, desc:'Pipelines 4x throughput',        effect:()=>{ multiplyBldBps('pipeline', 4); }},
+  { id:'u9', icon:'🏦', name:'OPEC Membership',     cost:800000, desc:'Cartel 3x influence + $50/bbl',  effect:()=>{ multiplyBldBps('cartel', 3); state.pricePerBarrel += 50; }},
+];
+
+const bpsMultipliers = {};
+
+function multiplyBldBps(id, mult) {
+  bpsMultipliers[id] = (bpsMultipliers[id] || 1) * mult;
+  recalcBps();
+}
+
+function recalcBps() {
+  let total = 0;
+  buildings.forEach(b => {
+    const count = state.owned[b.id] || 0;
+    const mult = bpsMultipliers[b.id] || 1;
+    total += b.baseBps * count * mult;
+  });
+  state.bps = total;
+}
+
+function getBuildingCost(b) {
+  const owned = state.owned[b.id] || 0;
+  return Math.ceil(b.baseCost * Math.pow(1.15, owned));
+}
+
+function fmtNum(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return Math.floor(n).toString();
+}
+
+function fmtMoney(n) {
+  if (n >= 1e9) return '$' + (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '$' + (n / 1e3).toFixed(1) + 'K';
+  return '$' + Math.floor(n).toString();
+}
+
+function renderShop() {
+  const container = document.getElementById('shop-items');
+  container.innerHTML = buildings.map(b => {
+    const cost = getBuildingCost(b);
+    const canAfford = state.money >= cost * state.pricePerBarrel || state.barrels >= cost;
+    const affordable = state.barrels >= cost;
+    const owned = state.owned[b.id] || 0;
+    return `<div class="shop-item${affordable?'':' disabled'}" onclick="buyBuilding('${b.id}')">
+      <div class="icon">${b.icon}</div>
+      <div class="info">
+        <div class="item-name">${b.name}</div>
+        <div class="item-desc">${b.desc}</div>
+      </div>
+      <div class="right">
+        <div class="price">🛢️ ${fmtNum(cost)}</div>
+        <div class="owned">owned: ${owned}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const uContainer = document.getElementById('upgrade-items');
+  uContainer.innerHTML = upgrades.map(u => {
+    const bought = state.boughtUpgrades.has(u.id);
+    const canAfford = !bought && state.barrels >= u.cost;
+    const cls = bought ? 'bought' : (canAfford ? '' : 'disabled');
+    return `<div class="upgrade-item ${cls}" onclick="buyUpgrade('${u.id}')">
+      <div class="u-icon">${u.icon}</div>
+      <div>
+        <div class="u-name">${u.name}</div>
+        <div class="u-desc">${u.desc}</div>
+      </div>
+      <div class="u-price">${bought ? '✓ Done' : '🛢️ ' + fmtNum(u.cost)}</div>
+    </div>`;
+  }).join('');
+}
+
+function buyBuilding(id) {
+  const b = buildings.find(x => x.id === id);
+  const cost = getBuildingCost(b);
+  if (state.barrels < cost) return;
+  state.barrels -= cost;
+  state.owned[id] = (state.owned[id] || 0) + 1;
+  recalcBps();
+  updateDisplay();
+  renderShop();
+}
+
+function buyUpgrade(id) {
+  if (state.boughtUpgrades.has(id)) return;
+  const u = upgrades.find(x => x.id === id);
+  if (state.barrels < u.cost) return;
+  state.barrels -= u.cost;
+  state.boughtUpgrades.add(id);
+  u.effect();
+  updateDisplay();
+  renderShop();
+}
+
+function spawnFloat(e) {
+  const el = document.createElement('div');
+  el.className = 'float';
+  el.textContent = '+' + state.bpc + ' bbl';
+  el.style.left = (e.clientX - 30 + (Math.random() * 30 - 15)) + 'px';
+  el.style.top = (e.clientY - 10) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+
+  for (let i = 0; i < 3; i++) {
+    const drip = document.createElement('div');
+    drip.className = 'drip';
+    drip.style.left = (e.clientX + (Math.random() * 30 - 15)) + 'px';
+    drip.style.top = (e.clientY + 20) + 'px';
+    drip.style.animationDelay = (i * 0.1) + 's';
+    document.body.appendChild(drip);
+    setTimeout(() => drip.remove(), 900);
+  }
+}
+
+document.getElementById('main-pump').addEventListener('click', (e) => {
+  state.barrels += state.bpc;
+  state.totalExtracted += state.bpc;
+  state.money += state.bpc * state.pricePerBarrel;
+  spawnFloat(e);
+  updateDisplay();
+  renderShop();
+});
+
+function updateDisplay() {
+  document.getElementById('oil-display').textContent = fmtNum(state.barrels);
+  document.getElementById('money-display').textContent = fmtMoney(state.money);
+  document.getElementById('bps-display').textContent = state.bps.toFixed(1);
+  document.getElementById('bpc-display').textContent = state.bpc;
+  document.getElementById('price-display').textContent = state.pricePerBarrel;
+}
+
+let lastTime = performance.now();
+function tick(now) {
+  const dt = (now - lastTime) / 1000;
+  lastTime = now;
+  if (state.bps > 0) {
+    const gain = state.bps * dt;
+    state.barrels += gain;
+    state.totalExtracted += gain;
+    state.money += gain * state.pricePerBarrel;
+    updateDisplay();
+    if (Math.random() < 0.03) renderShop();
+  }
+  requestAnimationFrame(tick);
+}
+
+renderShop();
+updateDisplay();
+requestAnimationFrame(tick);
+</script>

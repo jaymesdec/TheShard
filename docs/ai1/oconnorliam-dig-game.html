@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dig to the Other Side</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --sky1: #67c5ff;
+      --sky2: #b9ecff;
+      --dirt1: #7a4f2f;
+      --dirt2: #5f3c24;
+      --dirt3: #3a2618;
+      --panel: #1c2333;
+      --panel2: #2a3348;
+      --line: rgba(255,255,255,0.12);
+      --text: #f8fbff;
+      --muted: #bfd0ea;
+      --gold: #ffd54a;
+      --silver: #e4ebf4;
+      --diamond: #88f0ff;
+      --sapphire: #4b8fff;
+      --ruby: #ff5577;
+      --mystery: #c786ff;
+      --green: #38d26e;
+      --red: #ef5b4c;
+      --blue: #5da9ff;
+      --brick: #b55b36;
+      --brickDark: #8f4323;
+      --pipe: #1ca84a;
+      --pipeDark: #127235;
+      --yellow: #ffcf33;
+      --shadow: rgba(0,0,0,0.25);
+    }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", Arial, sans-serif;
+      color: var(--text);
+      background: #101726;
+      overflow: hidden;
+      image-rendering: pixelated;
+    }
+
+    .game {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 78px 1fr;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      background:
+        linear-gradient(180deg, #303b54, #1b2233);
+      border-bottom: 4px solid #0b1020;
+      overflow-x: auto;
+    }
+
+    .stat {
+      min-width: 128px;
+      padding: 10px 12px;
+      background: linear-gradient(180deg, #3a4764, #232c40);
+      border: 3px solid #111827;
+      border-radius: 10px;
+      box-shadow: inset 0 2px 0 rgba(255,255,255,0.08);
+    }
+
+    .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .value {
+      font-size: 19px;
+      font-weight: 800;
+      margin-top: 3px;
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      min-height: 0;
+    }
+
+    .world-wrap {
+      position: relative;
+      overflow: hidden;
+      border-right: 4px solid #0f1522;
+      background:
+        linear-gradient(to bottom, var(--sky1) 0 105px, var(--sky2) 105px 145px, #8fd36c 145px 160px, var(--dirt1) 160px 100%);
+    }
+
+    .cloud {
+      position: absolute;
+      width: 88px;
+      height: 34px;
+      background: white;
+      border-radius: 20px;
+      top: 35px;
+      box-shadow:
+        18px -10px 0 8px white,
+        40px 0 0 6px white,
+        60px -6px 0 4px white;
+      opacity: 0.95;
+      z-index: 1;
+    }
+
+    .cloud.c1 { left: 90px; }
+    .cloud.c2 { right: 160px; top: 52px; transform: scale(0.9); }
+
+    .surface-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 160px;
+      height: 8px;
+      background: #4e311f;
+      z-index: 2;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+    }
+
+    .ground {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 168px;
+      bottom: 0;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.04) 0 2px, transparent 2px),
+        radial-gradient(circle at 70% 35%, rgba(255,255,255,0.03) 0 2px, transparent 2px),
+        radial-gradient(circle at 40% 65%, rgba(0,0,0,0.15) 0 3px, transparent 3px),
+        linear-gradient(180deg, var(--dirt1) 0%, var(--dirt2) 40%, var(--dirt3) 100%);
+      background-size: 110px 110px, 140px 140px, 150px 150px, 100% 100%;
+    }
+
+    .layer-tint {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 168px;
+      bottom: 0;
+      opacity: 0.28;
+      pointer-events: none;
+      transition: background 0.2s ease;
+    }
+
+    .brick-platform {
+      position: absolute;
+      top: 118px;
+      height: 24px;
+      border: 3px solid #6d2e16;
+      background:
+        linear-gradient(180deg, var(--brick) 0%, var(--brickDark) 100%);
+      box-shadow: inset 0 2px 0 rgba(255,255,255,0.08);
+      z-index: 3;
+    }
+
+    .platform-left {
+      left: 24px;
+      width: 170px;
+    }
+
+    .platform-center {
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+    }
+
+    .platform-right {
+      right: 24px;
+      width: 170px;
+    }
+
+    .pixel-sign {
+      position: absolute;
+      top: 75px;
+      padding: 8px 12px;
+      background: #fff8d8;
+      color: #2b2b2b;
+      font-weight: 900;
+      border: 3px solid #3f2f22;
+      border-radius: 8px;
+      z-index: 6;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+    }
+
+    .base-label {
+      left: 20px;
+    }
+
+    .area {
+      position: absolute;
+      top: 112px;
+      width: 160px;
+      height: 42px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      text-align: center;
+      z-index: 6;
+      cursor: pointer;
+      user-select: none;
+      border: 3px solid rgba(0,0,0,0.28);
+      box-shadow: 0 5px 0 rgba(0,0,0,0.18);
+      transition: transform 0.08s ease;
+    }
+
+    .area:hover { transform: translateY(-1px); }
+
+    .shop-area {
+      left: 29px;
+      background: linear-gradient(180deg, #44d86d, #209b46);
+    }
+
+    .mine-area {
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #ffcf33, #e49d08);
+    }
+
+    .mine-area:hover {
+      transform: translateX(-50%) translateY(-1px);
+    }
+
+    .lift-area {
+      right: 29px;
+      background: linear-gradient(180deg, #63b4ff, #2b81e0);
+    }
+
+    .pipe {
+      position: absolute;
+      top: 122px;
+      width: 60px;
+      height: 38px;
+      background: linear-gradient(180deg, var(--pipe), var(--pipeDark));
+      border: 3px solid rgba(0,0,0,0.22);
+      border-bottom: none;
+      z-index: 4;
+      border-radius: 6px 6px 0 0;
+    }
+
+    .pipe::before {
+      content: "";
+      position: absolute;
+      left: -6px;
+      right: -6px;
+      top: -10px;
+      height: 12px;
+      background: linear-gradient(180deg, #30c95b, #17883b);
+      border: 3px solid rgba(0,0,0,0.22);
+      border-radius: 6px;
+    }
+
+    .pipe.left { left: 80px; }
+    .pipe.right { right: 80px; }
+
+    .shaft {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 168px;
+      bottom: 24px;
+      width: 128px;
+      background:
+        linear-gradient(90deg, #302018 0%, #1f1511 50%, #302018 100%);
+      border-left: 4px solid rgba(255,255,255,0.05);
+      border-right: 4px solid rgba(255,255,255,0.05);
+      z-index: 2;
+    }
+
+    .shaft-rails {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 168px;
+      bottom: 24px;
+      width: 128px;
+      z-index: 3;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, transparent 0 14px, rgba(255,255,255,0.07) 14px 18px, transparent 18px 110px, rgba(255,255,255,0.07) 110px 114px, transparent 114px 100%);
+    }
+
+    .character {
+      position: absolute;
+      width: 44px;
+      height: 64px;
+      z-index: 8;
+      transition: left 0.06s linear, top 0.1s ease;
+      filter: drop-shadow(0 8px 6px rgba(0,0,0,0.25));
+    }
+
+    .hat {
+      position: absolute;
+      left: 5px;
+      top: 0;
+      width: 34px;
+      height: 11px;
+      border-radius: 8px 8px 4px 4px;
+      background: linear-gradient(180deg, #ff5c4d, #c83426);
+      border: 2px solid rgba(0,0,0,0.22);
+    }
+
+    .hat::after {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 9px;
+      width: 22px;
+      height: 6px;
+      border-radius: 5px;
+      background: #b92d21;
+    }
+
+    .head {
+      position: absolute;
+      left: 9px;
+      top: 8px;
+      width: 26px;
+      height: 22px;
+      border-radius: 50%;
+      background: #f1c27d;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .mustache {
+      position: absolute;
+      left: 12px;
+      top: 20px;
+      width: 18px;
+      height: 6px;
+      background: #6b3f22;
+      border-radius: 6px;
+    }
+
+    .shirt {
+      position: absolute;
+      left: 10px;
+      top: 28px;
+      width: 24px;
+      height: 12px;
+      background: #d23d31;
+      border-radius: 4px 4px 2px 2px;
+    }
+
+    .overalls {
+      position: absolute;
+      left: 8px;
+      top: 38px;
+      width: 28px;
+      height: 14px;
+      background: #2f78ff;
+      border-radius: 4px;
+    }
+
+    .strap {
+      position: absolute;
+      top: -7px;
+      width: 6px;
+      height: 9px;
+      background: #2f78ff;
+    }
+
+    .strap.left { left: 3px; }
+    .strap.right { right: 3px; }
+
+    .arm, .leg {
+      position: absolute;
+      transform-origin: top center;
+      border-radius: 8px;
+    }
+
+    .arm {
+      top: 30px;
+      width: 8px;
+      height: 18px;
+      background: #f1c27d;
+    }
+
+    .arm.left { left: 0; }
+    .arm.right { right: 0; }
+
+    .leg {
+      top: 50px;
+      width: 8px;
+      height: 14px;
+      background: #70421c;
+    }
+
+    .leg.left { left: 10px; }
+    .leg.right { right: 26px; }
+
+    .pickaxe {
+      position: absolute;
+      right: -12px;
+      top: 33px;
+      width: 25px;
+      height: 6px;
+      background: #9a6946;
+      border-radius: 4px;
+      transform-origin: left center;
+    }
+
+    .pickaxe::after {
+      content: "";
+      position: absolute;
+      right: -4px;
+      top: -6px;
+      width: 12px;
+      height: 14px;
+      background: #cfd8df;
+      clip-path: polygon(0 50%, 100% 0, 85% 100%);
+    }
+
+    .character.mining .pickaxe { animation: swing 0.18s linear infinite alternate; }
+    .character.mining .arm.right { animation: armSwing 0.18s linear infinite alternate; }
+
+    @keyframes swing {
+      from { transform: rotate(-15deg); }
+      to { transform: rotate(58deg); }
+    }
+
+    @keyframes armSwing {
+      from { transform: rotate(-8deg); }
+      to { transform: rotate(34deg); }
+    }
+
+    .floating {
+      position: absolute;
+      z-index: 20;
+      font-weight: 900;
+      font-size: 14px;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      pointer-events: none;
+      animation: floatUp 0.9s ease-out forwards;
+    }
+
+    @keyframes floatUp {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(-34px); }
+    }
+
+    .sidebar {
+      background: linear-gradient(180deg, #222b3f, #171e2f);
+      padding: 14px;
+      overflow-y: auto;
+      border-left: 4px solid #0f1522;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, #36425e, #273148);
+      border: 3px solid #121a2b;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: inset 0 2px 0 rgba(255,255,255,0.06);
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .sub {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 11px 12px;
+      border: 3px solid rgba(0,0,0,0.28);
+      border-radius: 8px;
+      color: white;
+      font-weight: 900;
+      cursor: pointer;
+      background: linear-gradient(180deg, #526586, #35435f);
+      box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-main {
+      background: linear-gradient(180deg, #ffcf33, #dd9700);
+    }
+
+    .btn-good {
+      background: linear-gradient(180deg, #42d26f, #1f9d47);
+    }
+
+    .resource {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-size: 14px;
+    }
+
+    .resource:last-child { border-bottom: none; }
+
+    .silver { color: var(--silver); }
+    .gold { color: var(--gold); }
+    .diamond { color: var(--diamond); }
+    .sapphire { color: var(--sapphire); }
+    .ruby { color: var(--ruby); }
+    .mystery { color: var(--mystery); }
+
+    .hint {
+      font-size: 12px;
+      line-height: 1.5;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+      border-left: 4px solid var(--yellow);
+      color: #eff6ff;
+    }
+
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+      padding: 20px;
+    }
+
+    .modal {
+      width: min(560px, 100%);
+      max-height: 86vh;
+      overflow: auto;
+      background: linear-gradient(180deg, #2d3850, #1b2233);
+      border: 4px solid #111827;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 16px 0 rgba(0,0,0,0.22);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .close-btn {
+      width: auto;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #6a7ea3, #495976);
+      border: 3px solid rgba(0,0,0,0.28);
+      color: white;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .shop-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .shop-item {
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.06);
+      border: 2px solid rgba(255,255,255,0.08);
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .title {
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+
+    .log {
+      min-height: 40px;
+      line-height: 1.4;
+    }
+
+    .win {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.68);
+      z-index: 50;
+      padding: 20px;
+    }
+
+    .win-box {
+      width: min(520px, 100%);
+      background: linear-gradient(180deg, #303b54, #1b2233);
+      border: 4px solid #111827;
+      border-radius: 14px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 16px 0 rgba(0,0,0,0.22);
+    }
+
+    @media (max-width: 980px) {
+      .main { grid-template-columns: 1fr; }
+      .sidebar { max-height: 42vh; }
+    }
+  
+    /* --- Added Boss Fight UI --- */
+    .boss-overlay{
+      position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+      background:rgba(0,0,0,0.6); z-index:60;
+    }
+    .boss-box{
+      width:420px; background:linear-gradient(180deg,#303b54,#1b2233);
+      border:4px solid #111827; border-radius:14px; padding:18px; text-align:center;
+    }
+    .meter{
+      margin-top:12px; height:18px; background:#333; border-radius:8px; position:relative; overflow:hidden;
+    }
+    .meter-green{
+      position:absolute; left:40%; width:20%; top:0; bottom:0; background:#38d26e;
+    }
+    .meter-cursor{
+      position:absolute; width:6px; top:0; bottom:0; background:white;
+    }
+
+</style>
+</head>
+<body>
+  <div class="game">
+    <div class="topbar">
+      <div class="stat"><div class="label">Money</div><div class="value">$<span id="money">0</span></div></div>
+      <div class="stat"><div class="label">Depth</div><div class="value"><span id="depth">0</span> m</div></div>
+      <div class="stat"><div class="label">Best Depth</div><div class="value"><span id="bestDepth">0</span> m</div></div>
+      <div class="stat"><div class="label">Power</div><div class="value"><span id="power">1</span></div></div>
+      <div class="stat"><div class="label">Zone</div><div class="value"><span id="zone">Surface</span></div></div>
+      <div class="stat"><div class="label">Goal</div><div class="value"><span id="goal">10000</span> m</div></div>
+    </div>
+
+    <div class="main">
+      <div class="world-wrap" id="worldWrap">
+        <div class="cloud c1"></div>
+        <div class="cloud c2"></div>
+
+        <div class="brick-platform platform-left"></div>
+        <div class="brick-platform platform-center"></div>
+        <div class="brick-platform platform-right"></div>
+
+        <div class="pipe left"></div>
+        <div class="pipe right"></div>
+
+        <div class="pixel-sign base-label">USA BASE CAMP</div>
+
+        <div class="surface-line"></div>
+        <div class="ground"></div>
+        <div class="layer-tint" id="layerTint"></div>
+
+        <div class="area shop-area" id="shopArea">SHOP</div>
+        <div class="area mine-area" id="mineArea">ENTER MINE</div>
+        <div class="area lift-area" id="liftArea">ELEVATOR</div>
+
+        <div class="shaft"></div>
+        <div class="shaft-rails"></div>
+
+        <div class="character" id="character">
+          <div class="hat"></div>
+          <div class="head"></div>
+          <div class="mustache"></div>
+          <div class="shirt"></div>
+          <div class="overalls">
+            <div class="strap left"></div>
+            <div class="strap right"></div>
+          </div>
+          <div class="arm left"></div>
+          <div class="arm right"></div>
+          <div class="leg left"></div>
+          <div class="leg right"></div>
+          <div class="pickaxe"></div>
+        </div>
+
+        <div class="modal-backdrop" id="shopModalWrap">
+          <div class="modal">
+            <div class="modal-head">
+              <div>
+                <h2 style="margin:0;">Mining Shop</h2>
+                <div class="sub">Sell your finds and buy stronger gear.</div>
+              </div>
+              <button class="close-btn" id="closeShop">Close</button>
+            </div>
+
+            <div class="panel" style="margin-bottom:10px;">
+              <div class="row">
+                <div>
+                  <div class="title">Sell all materials</div>
+                  <div class="sub">Silver $8 · Gold $20 · Diamond $55 · Sapphire $90 · Ruby $160 · Mystery items give random cash.</div>
+                </div>
+                <button class="btn btn-good" style="width:auto;" id="sellAllBtn">Sell All</button>
+              </div>
+            </div>
+
+            <div class="shop-grid">
+              <div class="shop-item">
+                <div class="row">
+                  <div>
+                    <div class="title">Pickaxe Upgrade</div>
+                    <div class="sub">Boosts dig distance every click.</div>
+                  </div>
+                  <button class="btn" style="width:auto;" id="pickaxeBtn">Buy</button>
+                </div>
+              </div>
+
+              <div class="shop-item">
+                <div class="row">
+                  <div>
+                    <div class="title">Drill Upgrade</div>
+                    <div class="sub">Big power boost for deeper layers.</div>
+                  </div>
+                  <button class="btn" style="width:auto;" id="drillBtn">Buy</button>
+                </div>
+              </div>
+
+              <div class="shop-item">
+                <div class="row">
+                  <div>
+                    <div class="title">Boots Upgrade</div>
+                    <div class="sub">Move faster on the surface.</div>
+                  </div>
+                  <button class="btn" style="width:auto;" id="bootsBtn">Buy</button>
+                </div>
+              </div>
+
+              <div class="shop-item">
+                <div class="row">
+                  <div>
+                    <div class="title">Ore Cart Upgrade</div>
+                    <div class="sub">Improves rare drop luck a little.</div>
+                  </div>
+                  <button class="btn" style="width:auto;" id="cartBtn">Buy</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-top:12px;">
+              <h3 style="margin-top:0;">Your Gear</h3>
+              <div class="sub">
+                Pickaxe Level: <span id="pickaxeLevel">1</span><br>
+                Drill Level: <span id="drillLevel">1</span><br>
+                Boots Level: <span id="bootsLevel">1</span><br>
+                Cart Level: <span id="cartLevel">1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="win" id="winScreen">
+          <div class="win-box">
+            <h1 style="margin-top:0;">You reached the other side 🌍</h1>
+            <p>You dug all the way through the planet and broke out near China.</p>
+            <button class="btn btn-good" id="restartBtn">Restart Game</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar">
+        <div class="panel">
+          <h3>Controls</h3>
+          <div class="hint">
+            Move with <b>A / D</b> or <b>← / →</b><br>
+            Press <b>Space</b> for the main action<br>
+            On surface: <b>Space</b> opens shop / elevator / mine depending where you stand<br>
+            Underground: <b>Space</b> digs
+          </div>
+          <button class="btn btn-main" id="digBtn">DIG</button>
+          <button class="btn" id="surfaceBtn">Go To Surface</button>
+          <button class="btn" id="returnBtn">Return To Deepest Spot</button>
+        </div>
+
+        <div class="panel">
+          <h3>Inventory</h3>
+          <div class="resource"><span class="silver">Silver</span><span id="silver">0</span></div>
+          <div class="resource"><span class="gold">Gold</span><span id="gold">0</span></div>
+          <div class="resource"><span class="diamond">Diamond</span><span id="diamond">0</span></div>
+          <div class="resource"><span class="sapphire">Sapphire</span><span id="sapphire">0</span></div>
+          <div class="resource"><span class="ruby">Ruby</span><span id="ruby">0</span></div>
+          <div class="resource"><span class="mystery">Mystery</span><span id="mystery">0</span></div>
+        </div>
+
+        <div class="panel">
+          <h3>Event Log</h3>
+          <div class="log" id="log">Your miner is ready.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TARGET_DEPTH = 10000;
+    const SURFACE_Y = 98;
+    const SHAFT_TOP = 172;
+    const SHAFT_BOTTOM = 520;
+
+    const state = {
+      money: 0,
+      depth: 0,
+      bestDepth: 0,
+      savedDepth: 0,
+
+      pickaxeLevel: 1,
+      drillLevel: 1,
+      bootsLevel: 1,
+      cartLevel: 1,
+
+      silver: 0,
+      gold: 0,
+      diamond: 0,
+      sapphire: 0,
+      ruby: 0,
+      mystery: 0,
+
+      x: 470,
+      y: SURFACE_Y,
+      mining: false,
+      movingLeft: false,
+      movingRight: false,
+      inMine: false,
+      inShopZone: false,
+      inLiftZone: false,
+      inMineZone: false,
+      shopOpen: false,
+      won: false
+    };
+
+    const el = {
+      money: document.getElementById("money"),
+      depth: document.getElementById("depth"),
+      bestDepth: document.getElementById("bestDepth"),
+      power: document.getElementById("power"),
+      zone: document.getElementById("zone"),
+      goal: document.getElementById("goal"),
+
+      silver: document.getElementById("silver"),
+      gold: document.getElementById("gold"),
+      diamond: document.getElementById("diamond"),
+      sapphire: document.getElementById("sapphire"),
+      ruby: document.getElementById("ruby"),
+      mystery: document.getElementById("mystery"),
+
+      character: document.getElementById("character"),
+      log: document.getElementById("log"),
+      layerTint: document.getElementById("layerTint"),
+
+      digBtn: document.getElementById("digBtn"),
+      surfaceBtn: document.getElementById("surfaceBtn"),
+      returnBtn: document.getElementById("returnBtn"),
+
+      shopArea: document.getElementById("shopArea"),
+      mineArea: document.getElementById("mineArea"),
+      liftArea: document.getElementById("liftArea"),
+
+      shopModalWrap: document.getElementById("shopModalWrap"),
+      closeShop: document.getElementById("closeShop"),
+      sellAllBtn: document.getElementById("sellAllBtn"),
+      pickaxeBtn: document.getElementById("pickaxeBtn"),
+      drillBtn: document.getElementById("drillBtn"),
+      bootsBtn: document.getElementById("bootsBtn"),
+      cartBtn: document.getElementById("cartBtn"),
+
+      pickaxeLevel: document.getElementById("pickaxeLevel"),
+      drillLevel: document.getElementById("drillLevel"),
+      bootsLevel: document.getElementById("bootsLevel"),
+      cartLevel: document.getElementById("cartLevel"),
+
+      winScreen: document.getElementById("winScreen"),
+      restartBtn: document.getElementById("restartBtn"),
+      worldWrap: document.getElementById("worldWrap")
+    };
+
+    function log(msg) {
+      el.log.textContent = msg;
+    }
+
+    function totalPower() {
+      return state.pickaxeLevel + state.drillLevel * 2;
+    }
+
+    function moveSpeed() {
+      return 4 + state.bootsLevel * 1.2;
+    }
+
+    function getZoneName() {
+      if (state.depth === 0) return "Surface";
+      if (state.depth < 1800) return "Dirt Layer";
+      if (state.depth < 3800) return "Stone Layer";
+      if (state.depth < 6200) return "Crystal Layer";
+      if (state.depth < 8200) return "Hot Core Edge";
+      return "Deep Core";
+    }
+
+    function updateLayerVisual() {
+      let bg = "linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,0))";
+      if (state.depth < 1800) {
+        bg = "linear-gradient(180deg, rgba(140,90,50,0.05), rgba(140,90,50,0.16))";
+      } else if (state.depth < 3800) {
+        bg = "linear-gradient(180deg, rgba(130,130,130,0.07), rgba(85,85,85,0.22))";
+      } else if (state.depth < 6200) {
+        bg = "linear-gradient(180deg, rgba(80,180,255,0.08), rgba(30,80,255,0.22))";
+      } else if (state.depth < 8200) {
+        bg = "linear-gradient(180deg, rgba(255,140,0,0.08), rgba(255,70,0,0.24))";
+      } else {
+        bg = "linear-gradient(180deg, rgba(255,0,60,0.08), rgba(130,0,255,0.25))";
+      }
+      el.layerTint.style.background = bg;
+    }
+
+    function updateCharacter() {
+      el.character.style.left = state.x + "px";
+      el.character.style.top = state.y + "px";
+      el.character.classList.toggle("mining", state.mining);
+    }
+
+    function updateShopButtons() {
+      const pickaxeCost = 40 + (state.pickaxeLevel - 1) * 60;
+      const drillCost = 120 + (state.drillLevel - 1) * 120;
+      const bootsCost = 80 + (state.bootsLevel - 1) * 85;
+      const cartCost = 140 + (state.cartLevel - 1) * 130;
+
+      el.pickaxeBtn.textContent = `Buy $${pickaxeCost}`;
+      el.drillBtn.textContent = `Buy $${drillCost}`;
+      el.bootsBtn.textContent = `Buy $${bootsCost}`;
+      el.cartBtn.textContent = `Buy $${cartCost}`;
+
+      el.pickaxeBtn.disabled = state.money < pickaxeCost;
+      el.drillBtn.disabled = state.money < drillCost;
+      el.bootsBtn.disabled = state.money < bootsCost;
+      el.cartBtn.disabled = state.money < cartCost;
+    }
+
+    function updateUI() {
+      el.money.textContent = Math.floor(state.money);
+      el.depth.textContent = Math.floor(state.depth);
+      el.bestDepth.textContent = Math.floor(state.bestDepth);
+      el.power.textContent = totalPower();
+      el.zone.textContent = getZoneName();
+      el.goal.textContent = TARGET_DEPTH;
+
+      el.silver.textContent = state.silver;
+      el.gold.textContent = state.gold;
+      el.diamond.textContent = state.diamond;
+      el.sapphire.textContent = state.sapphire;
+      el.ruby.textContent = state.ruby;
+      el.mystery.textContent = state.mystery;
+
+      el.pickaxeLevel.textContent = state.pickaxeLevel;
+      el.drillLevel.textContent = state.drillLevel;
+      el.bootsLevel.textContent = state.bootsLevel;
+      el.cartLevel.textContent = state.cartLevel;
+
+      el.digBtn.disabled = !state.inMine || state.won;
+      el.surfaceBtn.disabled = !state.inMine || state.depth === 0 || state.won;
+      el.returnBtn.disabled = state.inMine || state.bestDepth === 0 || state.won;
+
+      updateLayerVisual();
+      updateShopButtons();
+      updateCharacter();
+    }
+
+    function addFloating(text, color = "#fff") {
+      const d = document.createElement("div");
+      d.className = "floating";
+      d.textContent = text;
+      d.style.left = (state.x + 5) + "px";
+      d.style.top = (state.y - 10) + "px";
+      d.style.color = color;
+      el.worldWrap.appendChild(d);
+      setTimeout(() => d.remove(), 900);
+    }
+
+    function setMinePositionByDepth() {
+      state.x = Math.floor(el.worldWrap.clientWidth / 2) - 22;
+      const ratio = state.depth / TARGET_DEPTH;
+      state.y = SHAFT_TOP + ratio * (SHAFT_BOTTOM - SHAFT_TOP);
+      if (state.y > SHAFT_BOTTOM) state.y = SHAFT_BOTTOM;
+    }
+
+    function enterMine() {
+      if (state.won) return;
+      state.inMine = true;
+      if (state.depth === 0) state.depth = 1;
+      setMinePositionByDepth();
+      closeShop();
+      log("You entered the mine. Press Space to dig.");
+      updateUI();
+    }
+
+    function goSurface() {
+      if (state.won) return;
+      state.savedDepth = state.depth;
+      state.inMine = false;
+      state.depth = 0;
+      state.x = 470;
+      state.y = SURFACE_Y;
+      closeShop();
+      log("You returned to the surface.");
+      updateUI();
+    }
+
+    function returnToDepth() {
+      if (state.won || state.bestDepth <= 0) return;
+      state.inMine = true;
+      state.depth = state.savedDepth || state.bestDepth;
+      setMinePositionByDepth();
+      closeShop();
+      log("You returned to your deepest tunnel.");
+      updateUI();
+    }
+
+    function oreRoll() {
+      const d = Math.min(state.depth / TARGET_DEPTH, 1);
+      const cartBonus = state.cartLevel * 0.01;
+
+      let silver = 0.52 - d * 0.14;
+      let gold = 0.26 + d * 0.03;
+      let diamond = 0.12 + d * 0.04;
+      let sapphire = 0.07 + d * 0.035;
+      let ruby = 0.03 + d * 0.035 + cartBonus;
+
+      const total = silver + gold + diamond + sapphire + ruby;
+      silver /= total;
+      gold /= total;
+      diamond /= total;
+      sapphire /= total;
+      ruby /= total;
+
+      const r = Math.random();
+      if (r < silver) return "silver";
+      if (r < silver + gold) return "gold";
+      if (r < silver + gold + diamond) return "diamond";
+      if (r < silver + gold + diamond + sapphire) return "sapphire";
+      return "ruby";
+    }
+
+    function mysteryRoll() {
+      return Math.random() < (0.035 + state.depth / TARGET_DEPTH * 0.04);
+    }
+
+    function dig() {
+      if (!state.inMine || state.won) return;
+
+      state.mining = true;
+      updateCharacter();
+      setTimeout(() => {
+        state.mining = false;
+        updateCharacter();
+      }, 160);
+
+      const gain = Math.floor(7 + Math.random() * 7 + totalPower() * 2.6);
+      state.depth += gain;
+      if (state.depth > TARGET_DEPTH) state.depth = TARGET_DEPTH;
+
+      if (state.depth > state.bestDepth) {
+        state.bestDepth = state.depth;
+        state.savedDepth = state.bestDepth;
+      }
+
+      const ore = oreRoll();
+      state[ore] += 1;
+
+      const colors = {
+        silver: "#e4ebf4",
+        gold: "#ffd54a",
+        diamond: "#88f0ff",
+        sapphire: "#4b8fff",
+        ruby: "#ff5577"
+      };
+
+      setMinePositionByDepth();
+      addFloating(`+${gain}m`, "#ffffff");
+      addFloating(ore.toUpperCase(), colors[ore]);
+
+      if (mysteryRoll()) {
+        state.mystery += 1;
+        addFloating("MYSTERY!", "#c786ff");
+        log(`You dug ${gain}m, found ${ore}, and uncovered a mystery item.`);
+      } else {
+        log(`You dug ${gain}m and found ${ore}.`);
+      }
+
+      if (state.depth >= TARGET_DEPTH) {
+        state.won = true;
+        el.winScreen.style.display = "flex";
+        log("You reached the other side of the world.");
+      }
+
+      updateUI();
+    }
+
+    function sellAll() {
+      let total = 0;
+      total += state.silver * 8;
+      total += state.gold * 20;
+      total += state.diamond * 55;
+      total += state.sapphire * 90;
+      total += state.ruby * 160;
+
+      let mysteryCash = 0;
+      for (let i = 0; i < state.mystery; i++) {
+        mysteryCash += 30 + Math.floor(Math.random() * 171);
+      }
+      total += mysteryCash;
+
+      if (total === 0) {
+        log("You have nothing to sell.");
+        return;
+      }
+
+      state.silver = 0;
+      state.gold = 0;
+      state.diamond = 0;
+      state.sapphire = 0;
+      state.ruby = 0;
+      state.mystery = 0;
+      state.money += total;
+
+      addFloating(`+$${total}`, "#38d26e");
+      log(`You sold everything for $${total}.`);
+      updateUI();
+    }
+
+    function buyPickaxe() {
+      const cost = 40 + (state.pickaxeLevel - 1) * 60;
+      if (state.money < cost) return;
+      state.money -= cost;
+      state.pickaxeLevel++;
+      log("Pickaxe upgraded.");
+      updateUI();
+    }
+
+    function buyDrill() {
+      const cost = 120 + (state.drillLevel - 1) * 120;
+      if (state.money < cost) return;
+      state.money -= cost;
+      state.drillLevel++;
+      log("Drill upgraded.");
+      updateUI();
+    }
+
+    function buyBoots() {
+      const cost = 80 + (state.bootsLevel - 1) * 85;
+      if (state.money < cost) return;
+      state.money -= cost;
+      state.bootsLevel++;
+      log("Boots upgraded.");
+      updateUI();
+    }
+
+    function buyCart() {
+      const cost = 140 + (state.cartLevel - 1) * 130;
+      if (state.money < cost) return;
+      state.money -= cost;
+      state.cartLevel++;
+      log("Ore cart upgraded.");
+      updateUI();
+    }
+
+    function openShop() {
+      if (state.inMine || state.won) return;
+      state.shopOpen = true;
+      el.shopModalWrap.style.display = "flex";
+      updateShopButtons();
+    }
+
+    function closeShop() {
+      state.shopOpen = false;
+      el.shopModalWrap.style.display = "none";
+    }
+
+    function resetGame() {
+      state.money = 0;
+      state.depth = 0;
+      state.bestDepth = 0;
+      state.savedDepth = 0;
+
+      state.pickaxeLevel = 1;
+      state.drillLevel = 1;
+      state.bootsLevel = 1;
+      state.cartLevel = 1;
+
+      state.silver = 0;
+      state.gold = 0;
+      state.diamond = 0;
+      state.sapphire = 0;
+      state.ruby = 0;
+      state.mystery = 0;
+
+      state.x = 470;
+      state.y = SURFACE_Y;
+      state.mining = false;
+      state.movingLeft = false;
+      state.movingRight = false;
+      state.inMine = false;
+      state.inShopZone = false;
+      state.inLiftZone = false;
+      state.inMineZone = false;
+      state.shopOpen = false;
+      state.won = false;
+
+      el.winScreen.style.display = "none";
+      closeShop();
+      log("New game started.");
+      updateUI();
+    }
+
+    function checkSurfaceZones() {
+      if (state.inMine) {
+        state.inShopZone = false;
+        state.inLiftZone = false;
+        state.inMineZone = false;
+        return;
+      }
+
+      state.inShopZone = state.x >= 29 && state.x <= 189;
+
+      const mineStart = (el.worldWrap.clientWidth / 2) - 80;
+      const mineEnd = (el.worldWrap.clientWidth / 2) + 80;
+      state.inMineZone = state.x >= mineStart && state.x <= mineEnd;
+
+      const rightStart = el.worldWrap.clientWidth - 29 - 160;
+      const rightEnd = el.worldWrap.clientWidth - 29;
+      state.inLiftZone = state.x >= rightStart && state.x <= rightEnd;
+    }
+
+    function surfaceBounds() {
+      const max = el.worldWrap.clientWidth - 48;
+      if (state.x < 20) state.x = 20;
+      if (state.x > max) state.x = max;
+    }
+
+    function handleAction() {
+      if (state.shopOpen || state.won) return;
+
+      if (state.inMine) {
+        dig();
+        return;
+      }
+
+      if (state.inShopZone) {
+        openShop();
+        return;
+      }
+
+      if (state.inLiftZone) {
+        if (state.bestDepth > 0) {
+          returnToDepth();
+        } else {
+          log("You need to dig first before using the elevator.");
+        }
+        return;
+      }
+
+      if (state.inMineZone) {
+        enterMine();
+        return;
+      }
+
+      log("Move onto SHOP, ENTER MINE, or ELEVATOR and press Space.");
+    }
+
+    function gameLoop() {
+      if (!state.won && !state.shopOpen) {
+        if (!state.inMine) {
+          if (state.movingLeft) state.x -= moveSpeed();
+          if (state.movingRight) state.x += moveSpeed();
+          surfaceBounds();
+          checkSurfaceZones();
+        }
+        updateCharacter();
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      const key = e.key.toLowerCase();
+
+      if (!state.shopOpen) {
+        if (key === "a" || e.key === "ArrowLeft") state.movingLeft = true;
+        if (key === "d" || e.key === "ArrowRight") state.movingRight = true;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        handleAction();
+      }
+    });
+
+    document.addEventListener("keyup", (e) => {
+      const key = e.key.toLowerCase();
+      if (key === "a" || e.key === "ArrowLeft") state.movingLeft = false;
+      if (key === "d" || e.key === "ArrowRight") state.movingRight = false;
+    });
+
+    el.mineArea.addEventListener("click", enterMine);
+    el.shopArea.addEventListener("click", openShop);
+    el.liftArea.addEventListener("click", () => {
+      if (state.bestDepth > 0) returnToDepth();
+      else log("You need to dig first before returning underground.");
+    });
+
+    el.digBtn.addEventListener("click", dig);
+    el.surfaceBtn.addEventListener("click", goSurface);
+    el.returnBtn.addEventListener("click", returnToDepth);
+
+    el.sellAllBtn.addEventListener("click", sellAll);
+    el.pickaxeBtn.addEventListener("click", buyPickaxe);
+    el.drillBtn.addEventListener("click", buyDrill);
+    el.bootsBtn.addEventListener("click", buyBoots);
+    el.cartBtn.addEventListener("click", buyCart);
+    el.closeShop.addEventListener("click", closeShop);
+    el.shopModalWrap.addEventListener("click", (e) => {
+      if (e.target === el.shopModalWrap) closeShop();
+    });
+
+    el.restartBtn.addEventListener("click", resetGame);
+
+    updateUI();
+    gameLoop();
+  
+// --- Added Secret Rooms + Boss System ---
+let bossActive=false;
+let bossHP=10;
+let cursor=0;
+let dir=1;
+
+const bossOverlay=document.getElementById("bossOverlay");
+const bossCursor=document.getElementById("bossCursor");
+const bossHPLabel=document.getElementById("bossHP");
+
+function maybeSecretRoom(){
+  if(Math.random()<0.03){
+    const reward=Math.floor(Math.random()*3)+1;
+    state.diamond+=reward;
+    log("You discovered a secret crystal cavern! +" + reward + " diamonds.");
+    addFloating("CRYSTAL CAVE!", "#88f0ff");
+  }
+}
+
+function startBoss(){
+  bossActive=true;
+  bossOverlay.style.display="flex";
+  bossHP=10;
+  bossHPLabel.textContent=bossHP;
+}
+
+function updateBossMeter(){
+  if(!bossActive) return;
+  cursor+=dir*3;
+  if(cursor>380||cursor<0) dir*=-1;
+  bossCursor.style.left=cursor+"px";
+}
+
+document.addEventListener("keydown",(e)=>{
+  if(e.code==="Space" && bossActive){
+    const greenStart=160;
+    const greenEnd=240;
+    if(cursor>greenStart && cursor<greenEnd){
+      bossHP--;
+      bossHPLabel.textContent=bossHP;
+      addFloating("HIT!", "#38d26e");
+      if(bossHP<=0){
+        bossActive=false;
+        bossOverlay.style.display="none";
+        state.won=true;
+        el.winScreen.style.display="flex";
+        log("You defeated the Core Guardian and opened a portal to a new world!");
+      }
+    }else{
+      addFloating("MISS", "#ef5b4c");
+    }
+  }
+});
+
+// patch dig() to include secret rooms and boss trigger
+const originalDig = dig;
+dig = function(){
+  if(state.depth >= 9800 && !bossActive && !state.won){
+    startBoss();
+    return;
+  }
+  maybeSecretRoom();
+  originalDig();
+}
+
+// boss meter loop
+setInterval(updateBossMeter,40);
+
+</script>
+
+<div class="boss-overlay" id="bossOverlay">
+  <div class="boss-box">
+    <h2>CORE GUARDIAN</h2>
+    <p>Hit SPACE when the cursor is in the green zone!</p>
+    <div class="meter">
+      <div class="meter-green"></div>
+      <div class="meter-cursor" id="bossCursor"></div>
+    </div>
+    <div style="margin-top:10px;">Boss HP: <span id="bossHP">10</span></div>
+  </div>
+</div>
+
+</body>
+</html>

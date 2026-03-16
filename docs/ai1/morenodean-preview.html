@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knight Battle Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(to bottom, #7db0ff 0%, #b7d6ff 45%, #5a7d3b 45%, #3e5c28 100%);
+      font-family: Georgia, serif;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: transparent;
+    }
+
+    .ui {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(980px, 95vw);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #fff7df;
+      font-weight: bold;
+      z-index: 10;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+      font-size: 20px;
+      flex-wrap: wrap;
+    }
+
+    .panel {
+      background: rgba(70, 40, 10, 0.75);
+      border: 3px solid #d4af37;
+      border-radius: 12px;
+      padding: 10px 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .music-btn {
+      border: 3px solid #d4af37;
+      background: linear-gradient(180deg, #b8892d, #8d641d);
+      color: #2a1806;
+      font-weight: bold;
+      font-size: 16px;
+      border-radius: 12px;
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+
+    .controls {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(900px, 95vw);
+      text-align: center;
+      color: #fff7df;
+      font-size: 16px;
+      z-index: 10;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+
+    .upgrade-overlay,
+    .game-over,
+    .victory-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
+    }
+
+    .upgrade-box,
+    .game-over-box,
+    .victory-box {
+      width: min(700px, 92vw);
+      background: linear-gradient(180deg, #5a3817, #3d240f);
+      border: 4px solid #d4af37;
+      border-radius: 18px;
+      padding: 24px;
+      color: #fff3c4;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    .upgrade-box h2,
+    .game-over-box h2,
+    .victory-box h2 {
+      margin-top: 0;
+      font-size: 32px;
+    }
+
+    .upgrade-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .upgrade-btn,
+    .restart-btn {
+      border: 3px solid #d4af37;
+      background: linear-gradient(180deg, #b8892d, #8d641d);
+      color: #2a1806;
+      font-weight: bold;
+      font-size: 18px;
+      border-radius: 14px;
+      padding: 16px;
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+
+    .upgrade-btn:hover,
+    .restart-btn:hover,
+    .music-btn:hover {
+      transform: scale(1.04);
+    }
+  </style>
+</head>
+<body>
+  <div class="ui">
+    <div class="panel">Score: <span id="score">0</span></div>
+    <div class="panel">Health: <span id="health">100</span></div>
+    <div class="panel">Upgrade At: <span id="nextUpgrade">100</span></div>
+    <div class="panel">Goal: <span id="bossGoal">1000</span></div>
+    <button class="music-btn" id="musicBtn">Music: ON</button>
+  </div>
+
+  <canvas id="game" width="900" height="500"></canvas>
+
+  <div class="controls">
+    Press <b>SPACE</b> to swing sword. Upgrades every 100 points. Final boss at 1000 points.
+  </div>
+
+  <div class="upgrade-overlay" id="upgradeOverlay">
+    <div class="upgrade-box">
+      <h2>Choose Your Upgrade</h2>
+      <p>Your training has improved.</p>
+      <div class="upgrade-options">
+        <button class="upgrade-btn" data-upgrade="damage">⚔ Damage +1</button>
+        <button class="upgrade-btn" data-upgrade="speed">💨 Faster Swing</button>
+        <button class="upgrade-btn" data-upgrade="range">📏 Bigger Range</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="game-over" id="gameOver">
+    <div class="game-over-box">
+      <h2>Game Over</h2>
+      <p>Your final score: <span id="finalScore">0</span></p>
+      <button class="restart-btn" id="restartBtn">Play Again</button>
+    </div>
+  </div>
+
+  <div class="victory-screen" id="victoryScreen">
+    <div class="victory-box">
+      <h2>Victory</h2>
+      <p>You defeated the final boss and saved the kingdom.</p>
+      <p>Final score: <span id="victoryScore">0</span></p>
+      <button class="restart-btn" id="victoryRestartBtn">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const scoreEl = document.getElementById("score");
+    const healthEl = document.getElementById("health");
+    const nextUpgradeEl = document.getElementById("nextUpgrade");
+    const bossGoalEl = document.getElementById("bossGoal");
+    const upgradeOverlay = document.getElementById("upgradeOverlay");
+    const gameOverEl = document.getElementById("gameOver");
+    const finalScoreEl = document.getElementById("finalScore");
+    const restartBtn = document.getElementById("restartBtn");
+    const victoryScreen = document.getElementById("victoryScreen");
+    const victoryScoreEl = document.getElementById("victoryScore");
+    const victoryRestartBtn = document.getElementById("victoryRestartBtn");
+    const musicBtn = document.getElementById("musicBtn");
+
+    const groundY = 390;
+
+    let score = 0;
+    let health = 100;
+    let gameOver = false;
+    let victory = false;
+    let pausedForUpgrade = false;
+    let nextUpgradeScore = 100;
+    let lastTime = 0;
+    let enemySpawnTimer = 0;
+    let popups = [];
+    let bossSpawned = false;
+    let bossDefeated = false;
+
+    const player = {
+      x: 180,
+      y: groundY,
+      swordLength: 65,
+      damage: 1,
+      swingDuration: 280,
+      swinging: false,
+      swingTimer: 0
+    };
+
+    const enemies = [];
+
+    let audioCtx = null;
+    let audioUnlocked = false;
+    let musicEnabled = true;
+    let musicStarted = false;
+    let musicTimers = [];
+    let masterMusicGain = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+      audioUnlocked = true;
+
+      if (!masterMusicGain) {
+        masterMusicGain = audioCtx.createGain();
+        masterMusicGain.gain.value = 0.12;
+        masterMusicGain.connect(audioCtx.destination);
+      }
+    }
+
+    function tone(freq, duration, type = "square", volume = 0.05, startTime = 0, destination = null) {
+      if (!audioCtx || !audioUnlocked) return;
+
+      const now = audioCtx.currentTime + startTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      osc.connect(gain);
+      gain.connect(destination || audioCtx.destination);
+
+      osc.start(now);
+      osc.stop(now + duration + 0.03);
+    }
+
+    function noiseBurst(duration = 0.08, volume = 0.04, filterFreq = 1200) {
+      if (!audioCtx || !audioUnlocked) return;
+
+      const bufferSize = audioCtx.sampleRate * duration;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+
+      const source = audioCtx.createBufferSource();
+      const filter = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+
+      filter.type = "lowpass";
+      filter.frequency.value = filterFreq;
+
+      gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+      source.buffer = buffer;
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      source.start();
+      source.stop(audioCtx.currentTime + duration);
+    }
+
+    function noteFreq(note) {
+      const map = {
+        "C3": 130.81,
+        "D3": 146.83,
+        "E3": 164.81,
+        "F3": 174.61,
+        "G3": 196.00,
+        "A3": 220.00,
+        "B3": 246.94,
+        "C4": 261.63,
+        "D4": 293.66,
+        "E4": 329.63,
+        "F4": 349.23,
+        "G4": 392.00,
+        "A4": 440.00
+      };
+      return map[note];
+    }
+
+    function musicNote(note, start, duration, volume = 0.03, type = "triangle") {
+      if (!audioCtx || !audioUnlocked || !musicEnabled || !masterMusicGain) return;
+      tone(noteFreq(note), duration, type, volume, start, masterMusicGain);
+    }
+
+    function clearMusicTimers() {
+      musicTimers.forEach(timer => clearTimeout(timer));
+      musicTimers = [];
+    }
+
+    function scheduleMedievalLoop() {
+      if (!audioCtx || !audioUnlocked || !musicEnabled) return;
+
+      const melody = [
+        ["E4", 0.00, 0.32],
+        ["G4", 0.40, 0.28],
+        ["A4", 0.75, 0.30],
+        ["G4", 1.10, 0.28],
+        ["E4", 1.50, 0.35],
+        ["D4", 1.95, 0.28],
+        ["E4", 2.30, 0.34],
+        ["B3", 2.75, 0.40],
+
+        ["E4", 3.30, 0.32],
+        ["G4", 3.70, 0.28],
+        ["A4", 4.05, 0.30],
+        ["B3", 4.45, 0.25],
+        ["D4", 4.80, 0.28],
+        ["E4", 5.15, 0.36],
+        ["G4", 5.60, 0.30],
+        ["E4", 6.00, 0.48]
+      ];
+
+      const bass = [
+        ["E3", 0.00, 0.90],
+        ["C3", 1.00, 0.90],
+        ["D3", 2.00, 0.90],
+        ["E3", 3.00, 0.90],
+        ["C3", 4.00, 0.90],
+        ["D3", 5.00, 0.90],
+        ["E3", 6.00, 1.10]
+      ];
+
+      const drone = [
+        ["E3", 0.00, 3.00],
+        ["D3", 3.20, 3.00]
+      ];
+
+      melody.forEach(([note, start, duration]) => {
+        musicNote(note, start, duration, 0.028, "triangle");
+      });
+
+      bass.forEach(([note, start, duration]) => {
+        musicNote(note, start, duration, 0.02, "sine");
+      });
+
+      drone.forEach(([note, start, duration]) => {
+        musicNote(note, start, duration, 0.012, "sawtooth");
+      });
+
+      const loopLengthMs = 6800;
+      const timer = setTimeout(() => {
+        if (musicEnabled && !gameOver && !victory) {
+          scheduleMedievalLoop();
+        } else {
+          musicStarted = false;
+        }
+      }, loopLengthMs);
+
+      musicTimers.push(timer);
+    }
+
+    function startMusic() {
+      if (!audioUnlocked || !musicEnabled || musicStarted) return;
+      musicStarted = true;
+      scheduleMedievalLoop();
+    }
+
+    function stopMusic() {
+      clearMusicTimers();
+      musicStarted = false;
+    }
+
+    function updateMusicButton() {
+      musicBtn.textContent = musicEnabled ? "Music: ON" : "Music: OFF";
+    }
+
+    const sfx = {
+      swing() {
+        noiseBurst(0.05, 0.025, 2200);
+        tone(260, 0.05, "sawtooth", 0.03, 0);
+        tone(180, 0.08, "triangle", 0.02, 0.03);
+      },
+      hit() {
+        tone(220, 0.05, "square", 0.04, 0);
+        noiseBurst(0.04, 0.02, 1500);
+      },
+      enemyDefeat() {
+        tone(420, 0.06, "square", 0.04, 0);
+        tone(620, 0.09, "square", 0.03, 0.04);
+      },
+      upgrade() {
+        tone(440, 0.08, "triangle", 0.04, 0);
+        tone(660, 0.08, "triangle", 0.04, 0.08);
+        tone(880, 0.12, "triangle", 0.04, 0.16);
+      },
+      bossWarning() {
+        tone(140, 0.2, "sawtooth", 0.05, 0);
+        tone(110, 0.25, "sawtooth", 0.05, 0.18);
+        tone(90, 0.35, "sawtooth", 0.05, 0.4);
+      },
+      bossHit() {
+        tone(120, 0.08, "square", 0.055, 0);
+        noiseBurst(0.05, 0.03, 900);
+      },
+      playerHurt() {
+        tone(170, 0.08, "sawtooth", 0.05, 0);
+        tone(120, 0.12, "sawtooth", 0.04, 0.05);
+      },
+      gameOver() {
+        tone(300, 0.15, "triangle", 0.04, 0);
+        tone(240, 0.15, "triangle", 0.04, 0.15);
+        tone(180, 0.25, "triangle", 0.05, 0.3);
+      },
+      victory() {
+        tone(523, 0.12, "triangle", 0.05, 0);
+        tone(659, 0.12, "triangle", 0.05, 0.12);
+        tone(784, 0.12, "triangle", 0.05, 0.24);
+        tone(1046, 0.25, "triangle", 0.06, 0.36);
+      },
+      miss() {
+        tone(160, 0.05, "triangle", 0.02, 0);
+      }
+    };
+
+    function resetGame() {
+      score = 0;
+      health = 100;
+      gameOver = false;
+      victory = false;
+      pausedForUpgrade = false;
+      nextUpgradeScore = 100;
+      lastTime = 0;
+      enemySpawnTimer = 0;
+      popups = [];
+      bossSpawned = false;
+      bossDefeated = false;
+
+      player.swordLength = 65;
+      player.damage = 1;
+      player.swingDuration = 280;
+      player.swinging = false;
+      player.swingTimer = 0;
+
+      enemies.length = 0;
+
+      scoreEl.textContent = score;
+      healthEl.textContent = health;
+      nextUpgradeEl.textContent = nextUpgradeScore;
+      bossGoalEl.textContent = 1000;
+      upgradeOverlay.style.display = "none";
+      gameOverEl.style.display = "none";
+      victoryScreen.style.display = "none";
+
+      stopMusic();
+      if (musicEnabled && audioUnlocked) {
+        startMusic();
+      }
+    }
+
+    function spawnEnemy() {
+      if (bossSpawned) return;
+
+      const typeRoll = Math.random();
+      let enemy;
+
+      if (typeRoll < 0.7) {
+        enemy = {
+          type: "normal",
+          x: canvas.width + 50,
+          y: groundY,
+          width: 32,
+          height: 55,
+          speed: 1.4 + Math.random() * 0.9 + score * 0.002,
+          hp: 1 + Math.floor(score / 250),
+          maxHp: 1 + Math.floor(score / 250),
+          damageCooldown: 0,
+          touchDamage: 10,
+          color: "#4a8f3a",
+          reward: 10
+        };
+      } else {
+        enemy = {
+          type: "normal",
+          x: canvas.width + 50,
+          y: groundY,
+          width: 42,
+          height: 68,
+          speed: 1.0 + Math.random() * 0.6 + score * 0.002,
+          hp: 2 + Math.floor(score / 220),
+          maxHp: 2 + Math.floor(score / 220),
+          damageCooldown: 0,
+          touchDamage: 15,
+          color: "#7a2f2f",
+          reward: 15
+        };
+      }
+
+      enemies.push(enemy);
+    }
+
+    function spawnBoss() {
+      bossSpawned = true;
+      enemies.length = 0;
+
+      enemies.push({
+        type: "boss",
+        x: canvas.width + 120,
+        y: groundY,
+        width: 110,
+        height: 140,
+        speed: 0.8,
+        hp: 60,
+        maxHp: 60,
+        damageCooldown: 0,
+        touchDamage: 20,
+        color: "#2b1d1d",
+        reward: 250
+      });
+
+      addPopup("FINAL BOSS!", canvas.width / 2, 120, "#ff5e5e");
+      sfx.bossWarning();
+    }
+
+    function addPopup(text, x, y, color = "#ffe27a") {
+      popups.push({
+        text,
+        x,
+        y,
+        color,
+        life: 800
+      });
+    }
+
+    function startSwing() {
+      if (player.swinging || pausedForUpgrade || gameOver || victory) return;
+      player.swinging = true;
+      player.swingTimer = player.swingDuration;
+      sfx.swing();
+      checkSwordHits();
+    }
+
+    function checkSwordHits() {
+      const rangeStart = player.x + 20;
+      const rangeEnd = player.x + player.swordLength + 50;
+      const hitTop = player.y - 110;
+      const hitBottom = player.y + 10;
+
+      let hitSomething = false;
+
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        const enemyLeft = e.x - e.width / 2;
+        const enemyRight = e.x + e.width / 2;
+        const enemyTop = e.y - e.height;
+        const enemyBottom = e.y;
+
+        const overlaps =
+          enemyRight >= rangeStart &&
+          enemyLeft <= rangeEnd &&
+          enemyBottom >= hitTop &&
+          enemyTop <= hitBottom;
+
+        if (overlaps) {
+          e.hp -= player.damage;
+          hitSomething = true;
+
+          if (e.type === "boss") {
+            sfx.bossHit();
+          } else {
+            sfx.hit();
+          }
+
+          addPopup("-" + player.damage, e.x, e.y - e.height - 12, "#ffcf70");
+
+          if (e.hp <= 0) {
+            const defeatedEnemy = enemies[i];
+            enemies.splice(i, 1);
+
+            score += defeatedEnemy.reward;
+            scoreEl.textContent = score;
+            addPopup("+" + defeatedEnemy.reward, defeatedEnemy.x, defeatedEnemy.y - defeatedEnemy.height - 32, "#8dff8d");
+            sfx.enemyDefeat();
+
+            if (defeatedEnemy.type === "boss") {
+              bossDefeated = true;
+              victory = true;
+              victoryScoreEl.textContent = score;
+              victoryScreen.style.display = "flex";
+              stopMusic();
+              sfx.victory();
+              return;
+            }
+          }
+        }
+      }
+
+      if (!hitSomething) {
+        addPopup("MISS", player.x + 100, player.y - 100, "#ffffff");
+        sfx.miss();
+      }
+
+      if (!bossSpawned && score >= 1000) {
+        spawnBoss();
+        return;
+      }
+
+      if (!bossSpawned && score >= nextUpgradeScore) {
+        pausedForUpgrade = true;
+        upgradeOverlay.style.display = "flex";
+      }
+    }
+
+    function applyUpgrade(type) {
+      if (type === "damage") {
+        player.damage += 1;
+      } else if (type === "speed") {
+        player.swingDuration = Math.max(120, player.swingDuration - 35);
+      } else if (type === "range") {
+        player.swordLength += 20;
+      }
+
+      nextUpgradeScore += 100;
+      nextUpgradeEl.textContent = nextUpgradeScore;
+      pausedForUpgrade = false;
+      upgradeOverlay.style.display = "none";
+      sfx.upgrade();
+    }
+
+    function update(dt) {
+      if (gameOver || victory || pausedForUpgrade) return;
+
+      if (player.swinging) {
+        player.swingTimer -= dt;
+        if (player.swingTimer <= 0) {
+          player.swinging = false;
+          player.swingTimer = 0;
+        }
+      }
+
+      if (!bossSpawned) {
+        enemySpawnTimer -= dt;
+        if (enemySpawnTimer <= 0) {
+          spawnEnemy();
+          enemySpawnTimer = Math.max(350, 1100 - score * 0.5);
+        }
+      }
+
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        e.x -= e.speed;
+
+        if (e.x < player.x + 40) {
+          e.damageCooldown -= dt;
+
+          if (e.damageCooldown <= 0) {
+            health -= e.touchDamage;
+            health = Math.max(0, health);
+            healthEl.textContent = health;
+            e.damageCooldown = e.type === "boss" ? 700 : 900;
+            addPopup("-" + e.touchDamage + " HP", player.x - 10, player.y - 125, "#ff8f8f");
+            sfx.playerHurt();
+          }
+        }
+
+        if (e.type !== "boss" && e.x < -60) {
+          enemies.splice(i, 1);
+        }
+      }
+
+      for (let i = popups.length - 1; i >= 0; i--) {
+        const p = popups[i];
+        p.life -= dt;
+        p.y -= 0.04 * dt;
+        if (p.life <= 0) {
+          popups.splice(i, 1);
+        }
+      }
+
+      if (!bossSpawned && score >= 1000) {
+        spawnBoss();
+      }
+
+      if (health <= 0 && !gameOver) {
+        gameOver = true;
+        finalScoreEl.textContent = score;
+        gameOverEl.style.display = "flex";
+        stopMusic();
+        sfx.gameOver();
+      }
+    }
+
+    function drawBackground() {
+      ctx.fillStyle = "#6f9c48";
+      ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+      ctx.fillStyle = "#7c5a2e";
+      for (let i = 0; i < canvas.width; i += 60) {
+        ctx.fillRect(i, groundY + 70, 40, 40);
+      }
+
+      ctx.fillStyle = "#e9f2ff";
+      ctx.beginPath();
+      ctx.arc(760, 80, 32, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#8aa5c7";
+      ctx.fillRect(0, groundY - 8, canvas.width, 8);
+    }
+
+    function drawKnight() {
+      const px = player.x;
+      const py = player.y;
+
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "#333";
+
+      ctx.fillStyle = "#8b8f99";
+      ctx.fillRect(px - 14, py - 55, 28, 36);
+
+      ctx.fillStyle = "#c9c9c9";
+      ctx.beginPath();
+      ctx.arc(px, py - 72, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#444";
+      ctx.beginPath();
+      ctx.moveTo(px - 8, py - 35);
+      ctx.lineTo(px - 20, py - 5);
+      ctx.moveTo(px + 8, py - 35);
+      ctx.lineTo(px + 18, py - 10);
+      ctx.moveTo(px - 8, py - 20);
+      ctx.lineTo(px - 14, py);
+      ctx.moveTo(px + 8, py - 20);
+      ctx.lineTo(px + 14, py);
+      ctx.stroke();
+
+      ctx.fillStyle = "#7a1f1f";
+      ctx.fillRect(px - 20, py - 52, 10, 28);
+
+      ctx.fillStyle = "#6b4a2a";
+      ctx.fillRect(px + 12, py - 44, 10, 28);
+
+      let swordAngle = -0.3;
+      if (player.swinging) {
+        const progress = 1 - player.swingTimer / player.swingDuration;
+        swordAngle = -1.2 + progress * 2.0;
+      }
+
+      const handX = px + 18;
+      const handY = py - 26;
+      const swordTipX = handX + Math.cos(swordAngle) * player.swordLength;
+      const swordTipY = handY + Math.sin(swordAngle) * player.swordLength;
+
+      ctx.strokeStyle = "#d9dce3";
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(handX, handY);
+      ctx.lineTo(swordTipX, swordTipY);
+      ctx.stroke();
+
+      ctx.strokeStyle = "#8b5a2b";
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(handX - 3, handY + 2);
+      ctx.lineTo(handX + 8, handY + 10);
+      ctx.stroke();
+
+      if (player.swinging) {
+        ctx.strokeStyle = "rgba(255, 235, 150, 0.45)";
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.arc(handX, handY, player.swordLength * 0.85, -1.0, 0.7);
+        ctx.stroke();
+      }
+    }
+
+    function drawEnemy(e) {
+      const x = e.x;
+      const y = e.y;
+
+      ctx.fillStyle = e.color;
+      ctx.fillRect(x - e.width / 2, y - e.height, e.width, e.height);
+
+      ctx.fillStyle = e.type === "boss" ? "#8b0000" : "#c9c9c9";
+      ctx.beginPath();
+      ctx.arc(x, y - e.height - 10, e.type === "boss" ? 24 : 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#2a0000";
+      if (e.type === "boss") {
+        ctx.fillRect(x - 30, y - e.height - 24, 60, 8);
+      } else {
+        ctx.fillRect(x - 10, y - e.height - 14, 20, 4);
+      }
+
+      const barWidth = e.type === "boss" ? 120 : 36;
+      ctx.fillStyle = "#400";
+      ctx.fillRect(x - barWidth / 2, y - e.height - 42, barWidth, 8);
+      ctx.fillStyle = e.type === "boss" ? "#ff4d4d" : "#6cff6c";
+      ctx.fillRect(x - barWidth / 2, y - e.height - 42, barWidth * (e.hp / e.maxHp), 8);
+
+      if (e.type === "boss") {
+        ctx.fillStyle = "#ffd27a";
+        ctx.font = "bold 18px Georgia";
+        ctx.textAlign = "center";
+        ctx.fillText("BOSS", x, y - e.height - 52);
+      }
+    }
+
+    function drawPopups() {
+      ctx.font = "bold 22px Georgia";
+      ctx.textAlign = "center";
+      for (const p of popups) {
+        ctx.globalAlpha = Math.max(0, p.life / 800);
+        ctx.fillStyle = p.color;
+        ctx.fillText(p.text, p.x, p.y);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawBossWarning() {
+      if (!bossSpawned || bossDefeated) return;
+      ctx.fillStyle = "rgba(120, 0, 0, 0.18)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBackground();
+      drawBossWarning();
+      drawKnight();
+
+      for (const enemy of enemies) {
+        drawEnemy(enemy);
+      }
+
+      drawPopups();
+    }
+
+    function loop(timestamp) {
+      const dt = Math.min(40, timestamp - lastTime || 16);
+      lastTime = timestamp;
+
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function unlockAudioFromInteraction() {
+      initAudio();
+      startMusic();
+      window.removeEventListener("keydown", unlockAudioFromInteraction);
+      window.removeEventListener("mousedown", unlockAudioFromInteraction);
+      window.removeEventListener("touchstart", unlockAudioFromInteraction);
+    }
+
+    window.addEventListener("keydown", unlockAudioFromInteraction);
+    window.addEventListener("mousedown", unlockAudioFromInteraction);
+    window.addEventListener("touchstart", unlockAudioFromInteraction);
+
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        initAudio();
+        startMusic();
+        startSwing();
+      }
+    });
+
+    document.querySelectorAll(".upgrade-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        initAudio();
+        startMusic();
+        applyUpgrade(btn.dataset.upgrade);
+      });
+    });
+
+    restartBtn.addEventListener("click", () => {
+      initAudio();
+      resetGame();
+    });
+
+    victoryRestartBtn.addEventListener("click", () => {
+      initAudio();
+      resetGame();
+    });
+
+    musicBtn.addEventListener("click", () => {
+      initAudio();
+      musicEnabled = !musicEnabled;
+      updateMusicButton();
+
+      if (musicEnabled) {
+        startMusic();
+      } else {
+        stopMusic();
+      }
+    });
+
+    updateMusicButton();
+    resetGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
