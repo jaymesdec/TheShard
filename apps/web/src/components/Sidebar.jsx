@@ -4,7 +4,6 @@ import {
     Calendar as CalendarIcon,
     Settings,
     ChevronDown,
-    Star,
 } from "lucide-react";
 
 export default function Sidebar({
@@ -79,17 +78,6 @@ export default function Sidebar({
                         <span>Calendar</span>
                     </a>
                 </div>
-                {/* AI I Showcase */}
-                <div className="mt-6">
-                    <a
-                        href="/ai1"
-                        className="flex items-center gap-3 h-[40px] text-[#7A7A7A] font-medium hover:text-[#2563FF]"
-                    >
-                        <Star size={20} />
-                        <span>AI I Showcase</span>
-                    </a>
-                </div>
-
                 {/* Groups Management */}
                 <div className="mt-6">
                     <a
