@@ -107,6 +107,23 @@ if (process.env.AUTH_SECRET) {
         strategy: 'jwt',
       },
       callbacks: {
+        async jwt({ token, user, account }) {
+          // On sign-in, resolve the stable DB user ID by email
+          if (user && account && token.email && pool) {
+            try {
+              const { rows } = await pool.query(
+                'SELECT id FROM auth_users WHERE email = $1 LIMIT 1',
+                [token.email]
+              );
+              if (rows.length > 0) {
+                token.sub = rows[0].id;
+              }
+            } catch {
+              // DB lookup failed — fall through with default sub
+            }
+          }
+          return token;
+        },
         session({ session, token }) {
           if (token.sub) {
             session.user.id = token.sub;
