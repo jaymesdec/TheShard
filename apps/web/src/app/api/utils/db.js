@@ -200,16 +200,16 @@ export const db = {
         // Try Auth.js users table if present; fallback to IDs-only
         try {
           const rows = await sql`
-            SELECT u.id, u.name, u.email, u.image, gm.joined_at
+            SELECT gm.user_id, u.name, u.email, u.image, gm.joined_at
             FROM app_group_members gm
-            LEFT JOIN users u ON u.id = gm.user_id
+            LEFT JOIN auth_users u ON u.id = gm.user_id
             WHERE gm.group_id = ${groupId}
             ORDER BY gm.joined_at ASC
           `;
           return rows.map(r => ({
-            id: r.id ?? null,
-            user_id: r.id ?? null,
-            name: r.name ?? null,
+            id: r.user_id,
+            user_id: r.user_id,
+            name: r.name || r.email || r.user_id,
             email: r.email ?? null,
             image: r.image ?? null,
             joined_at: r.joined_at,
@@ -224,7 +224,7 @@ export const db = {
           return rows.map(r => ({
             id: r.user_id,
             user_id: r.user_id,
-            name: r.user_id,
+            name: null,
             email: null,
             image: null,
             joined_at: r.joined_at,
@@ -247,7 +247,7 @@ export const db = {
         try {
           const rows = await sql`
             SELECT id, name, email, image
-            FROM users
+            FROM auth_users
             WHERE email ILIKE ${'%' + emailQuery + '%'}
             LIMIT 20
           `;
@@ -678,7 +678,7 @@ export const db = {
           return await sql`
             SELECT m.*, COALESCE(u.name, u.email, m.user_id) AS user_name
             FROM app_messages m
-            LEFT JOIN users u ON u.id = m.user_id
+            LEFT JOIN auth_users u ON u.id = m.user_id
             WHERE m.group_id = ${groupId}
             ORDER BY m.created_at ASC
           `;
