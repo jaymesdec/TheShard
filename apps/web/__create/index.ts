@@ -95,7 +95,6 @@ if (process.env.AUTH_SECRET) {
   app.use(
     '*',
     initAuthConfig((c) => ({
-      adapter,
       basePath: '/api/auth',
       secret: process.env.AUTH_SECRET,
       trustHost: true,
@@ -108,6 +107,19 @@ if (process.env.AUTH_SECRET) {
         strategy: 'jwt',
       },
       callbacks: {
+        async jwt({ token, user, account }) {
+          if (user && account) {
+            if (account.provider === 'google' && user.email) {
+              const dbUser = await adapter.getUserByEmail?.(user.email as string);
+              if (dbUser) {
+                token.sub = dbUser.id;
+                token.name = dbUser.name || user.name;
+                token.email = dbUser.email;
+              }
+            }
+          }
+          return token;
+        },
         session({ session, token }) {
           if (token.sub) {
             session.user.id = token.sub;
