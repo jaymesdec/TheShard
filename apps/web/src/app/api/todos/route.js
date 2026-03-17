@@ -39,7 +39,7 @@ export async function POST(request) {
 
     const userId = session.user.id;
     const body = await request.json();
-    const { groupId, title, dueDate, assignedTo } = body;
+    const { groupId, title, dueDate, assignedTo, dri } = body;
 
     if (!title) {
       return Response.json(
@@ -63,7 +63,8 @@ export async function POST(request) {
       title,
       groupId,
       dueDate,
-      assignedTo: assignedToArray
+      assignedTo: assignedToArray,
+      dri: dri || userId,
     });
 
     return Response.json({ todo }, { status: 201 });

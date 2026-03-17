@@ -1,5 +1,62 @@
-import { Plus } from "lucide-react";
+import { useState } from "react";
+import { Plus, Trash2, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
+
+function DriBadge({ todo, members, onUpdateDri }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const driMember = members.find((m) => m.id === todo.dri);
+    const displayName = driMember?.name || driMember?.email || null;
+    const initials = displayName
+        ? displayName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+        : null;
+
+    if (!onUpdateDri && !displayName) return null;
+
+    return (
+        <div className="relative">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-[#EEF2FF] text-[#4338CA] hover:bg-[#E0E7FF] transition-colors"
+                title={displayName ? `DRI: ${displayName}` : "Assign DRI"}
+            >
+                {initials ? (
+                    <span className="w-4 h-4 rounded-full bg-[#4338CA] text-white text-[9px] flex items-center justify-center font-semibold">
+                        {initials}
+                    </span>
+                ) : (
+                    <span className="w-4 h-4 rounded-full bg-[#C7D2FE] text-[#4338CA] text-[9px] flex items-center justify-center">?</span>
+                )}
+                <span className="max-w-[80px] truncate">{displayName || "Assign"}</span>
+                <ChevronDown size={10} />
+            </button>
+
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+                    <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-[#E5E5E5] rounded-lg shadow-lg py-1 min-w-[160px]">
+                        {members.map((member) => (
+                            <button
+                                key={member.id}
+                                onClick={() => {
+                                    onUpdateDri(todo.id, member.id);
+                                    setIsOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-1.5 text-[12px] hover:bg-[#F5F5F5] flex items-center gap-2 ${
+                                    member.id === todo.dri ? "bg-[#EEF2FF] font-medium" : ""
+                                }`}
+                            >
+                                <span className="w-5 h-5 rounded-full bg-[#4338CA] text-white text-[10px] flex items-center justify-center font-semibold flex-shrink-0">
+                                    {(member.name || member.email || "?").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
+                                </span>
+                                <span className="truncate">{member.name || member.email}</span>
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
 
 export default function TodoList({
     todos,
@@ -11,8 +68,13 @@ export default function TodoList({
     setNewTodoTitle,
     newTodoDueDate,
     setNewTodoDueDate,
+    newTodoDri,
+    setNewTodoDri,
     handleAddTodo,
     toggleTodoMutation,
+    handleDeleteTodo,
+    members = [],
+    onUpdateDri,
 }) {
     const completedTodos = todos.filter((t) => t.completed);
     const incompleteTodos = todos.filter((t) => !t.completed);
@@ -49,7 +111,7 @@ export default function TodoList({
                     {incompleteTodos.map((todo) => (
                         <div
                             key={todo.id}
-                            className="flex items-center justify-between h-8"
+                            className="flex items-center justify-between h-8 group"
                         >
                             <div className="flex items-center gap-3">
                                 <button
@@ -65,6 +127,7 @@ export default function TodoList({
                                 <span>{todo.title}</span>
                             </div>
                             <div className="flex items-center gap-2">
+                                <DriBadge todo={todo} members={members} onUpdateDri={onUpdateDri} />
                                 {todo.due_date && (
                                     <div
                                         className={`px-2 py-1 text-[11px] rounded-xl ${new Date(todo.due_date) < new Date()
@@ -74,6 +137,15 @@ export default function TodoList({
                                     >
                                         {format(new Date(todo.due_date), "d MMM, h:mm a")}
                                     </div>
+                                )}
+                                {handleDeleteTodo && (
+                                    <button
+                                        onClick={() => handleDeleteTodo(todo.id)}
+                                        className="p-1 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Delete task"
+                                    >
+                                        <Trash2 size={13} className="text-red-400" />
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -104,6 +176,20 @@ export default function TodoList({
                                     onChange={(e) => setNewTodoDueDate(e.target.value)}
                                     className="px-3 py-1 border border-[#E5E5E5] rounded text-[12px] text-[#7A7A7A]"
                                 />
+                                {members.length > 0 && (
+                                    <select
+                                        value={newTodoDri}
+                                        onChange={(e) => setNewTodoDri(e.target.value)}
+                                        className="px-3 py-1 border border-[#E5E5E5] rounded text-[12px] text-[#7A7A7A] max-w-[160px]"
+                                    >
+                                        <option value="">DRI...</option>
+                                        {members.map((member) => (
+                                            <option key={member.id} value={member.id}>
+                                                {member.name || member.email}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
@@ -119,6 +205,7 @@ export default function TodoList({
                                     setShowAddTodo(false);
                                     setNewTodoTitle("");
                                     setNewTodoDueDate("");
+                                    setNewTodoDri("");
                                 }}
                                 className="text-[13px] text-[#A3A3A3]"
                             >
@@ -137,7 +224,7 @@ export default function TodoList({
                         {completedTodos.map((todo) => (
                             <div
                                 key={todo.id}
-                                className="flex items-center justify-between h-8 opacity-60"
+                                className="flex items-center justify-between h-8 opacity-60 group"
                             >
                                 <div className="flex items-center gap-3">
                                     <button
@@ -151,11 +238,23 @@ export default function TodoList({
                                     ></button>
                                     <span className="line-through">{todo.title}</span>
                                 </div>
-                                {todo.due_date && (
-                                    <div className="px-2 py-1 bg-[#EAEAEA] text-[#4C4C4C] text-[11px] rounded-xl">
-                                        {format(new Date(todo.due_date), "d MMM, h:mm a")}
-                                    </div>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    <DriBadge todo={todo} members={members} onUpdateDri={onUpdateDri} />
+                                    {todo.due_date && (
+                                        <div className="px-2 py-1 bg-[#EAEAEA] text-[#4C4C4C] text-[11px] rounded-xl">
+                                            {format(new Date(todo.due_date), "d MMM, h:mm a")}
+                                        </div>
+                                    )}
+                                    {handleDeleteTodo && (
+                                        <button
+                                            onClick={() => handleDeleteTodo(todo.id)}
+                                            className="p-1 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="Delete task"
+                                        >
+                                            <Trash2 size={13} className="text-red-400" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>

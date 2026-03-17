@@ -11,7 +11,7 @@ export async function PATCH(request, { params }) {
     const todoId = params.id;
     const userId = session.user.id;
     const body = await request.json();
-    const { completed, title, dueDate, assignedTo } = body;
+    const { completed, title, dueDate, assignedTo, dri } = body;
 
     // Check access
     const hasAccess = await db.todos.checkAccess(userId, todoId);
@@ -28,6 +28,7 @@ export async function PATCH(request, { params }) {
     if (title) updateData.title = title;
     if (dueDate !== undefined) updateData.due_date = dueDate;
     if (assignedTo && Array.isArray(assignedTo)) updateData.assigned_to = assignedTo;
+    if (dri) updateData.dri = dri;
 
     if (Object.keys(updateData).length === 0) {
       return Response.json(

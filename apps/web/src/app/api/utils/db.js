@@ -33,9 +33,12 @@ const ensureSchema = async () => {
     group_id TEXT NULL REFERENCES app_groups(id) ON DELETE CASCADE,
     due_date TIMESTAMPTZ NULL,
     assigned_to JSONB NULL,
+    dri TEXT NULL,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
+
+  await sql`ALTER TABLE app_todos ADD COLUMN IF NOT EXISTS dri TEXT NULL`;
 
   await sql`CREATE TABLE IF NOT EXISTS app_notes (
     id TEXT PRIMARY KEY,
@@ -95,6 +98,7 @@ const mapPgTodo = (r) => ({
   group_id: r.group_id,
   due_date: r.due_date,
   assigned_to: r.assigned_to,
+  dri: r.dri ?? null,
   completed: r.completed,
   created_at: r.created_at,
   group_name: r.group_name ?? null,
@@ -440,7 +444,7 @@ export const db = {
         await ensureSchema();
         const id = generateId();
         const [row] = await sql`
-          INSERT INTO app_todos (id, created_by, title, group_id, due_date, assigned_to, completed)
+          INSERT INTO app_todos (id, created_by, title, group_id, due_date, assigned_to, dri, completed)
           VALUES (
             ${id},
             ${userId},
@@ -448,6 +452,7 @@ export const db = {
             ${data.groupId === 'personal' ? null : data.groupId},
             ${data.dueDate || null},
             ${JSON.stringify(data.assignedTo || [])}::jsonb,
+            ${data.dri || null},
             false
           )
           RETURNING *
@@ -463,6 +468,7 @@ export const db = {
         group_id: data.groupId === 'personal' ? null : data.groupId,
         due_date: data.dueDate,
         assigned_to: data.assignedTo,
+        dri: data.dri || null,
         completed: false,
         created_at: new Date().toISOString()
       };
@@ -482,7 +488,8 @@ export const db = {
             completed = COALESCE(${typeof data.completed === 'boolean' ? data.completed : null}, completed),
             title = COALESCE(${data.title ?? null}, title),
             due_date = COALESCE(${data.due_date ?? null}, due_date),
-            assigned_to = COALESCE(${data.assigned_to ? JSON.stringify(data.assigned_to) : null}::jsonb, assigned_to)
+            assigned_to = COALESCE(${data.assigned_to ? JSON.stringify(data.assigned_to) : null}::jsonb, assigned_to),
+            dri = COALESCE(${data.dri ?? null}, dri)
           WHERE id = ${todoId}
           RETURNING *
         `;

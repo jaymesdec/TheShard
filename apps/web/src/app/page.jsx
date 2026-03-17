@@ -15,6 +15,7 @@ export default function Dashboard() {
   // Todo State
   const [newTodoTitle, setNewTodoTitle] = useState("");
   const [newTodoDueDate, setNewTodoDueDate] = useState("");
+  const [newTodoDri, setNewTodoDri] = useState("");
   const [showAddTodo, setShowAddTodo] = useState(false);
 
   // Note State
@@ -91,6 +92,7 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
       setNewTodoTitle("");
       setNewTodoDueDate("");
+      setNewTodoDri("");
       setShowAddTodo(false);
     },
   });
@@ -122,6 +124,50 @@ export default function Dashboard() {
       queryClient.setQueryData(["todos", activeGroupId], context.previousTodos);
     },
     onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+  });
+
+  const updateDriMutation = useMutation({
+    mutationFn: async ({ id, dri }) => {
+      const response = await fetch(`/api/todos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dri }),
+      });
+      if (!response.ok) throw new Error("Failed to update DRI");
+      return response.json();
+    },
+    onMutate: async ({ id, dri }) => {
+      await queryClient.cancelQueries({ queryKey: ["todos", activeGroupId] });
+      const previousTodos = queryClient.getQueryData(["todos", activeGroupId]);
+
+      queryClient.setQueryData(["todos", activeGroupId], (old) => ({
+        ...old,
+        todos: old?.todos?.map((todo) =>
+          todo.id === id ? { ...todo, dri } : todo,
+        ),
+      }));
+
+      return { previousTodos };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(["todos", activeGroupId], context.previousTodos);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+  });
+
+  const deleteTodoMutation = useMutation({
+    mutationFn: async (todoId) => {
+      const response = await fetch(`/api/todos/${todoId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete todo");
+      return response.json();
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
   });
@@ -164,7 +210,18 @@ export default function Dashboard() {
       title: newTodoTitle.trim(),
       dueDate: newTodoDueDate || null,
       assignedTo: [user.id],
+      dri: newTodoDri || user.id,
     });
+  };
+
+  const handleUpdateDri = (todoId, driUserId) => {
+    updateDriMutation.mutate({ id: todoId, dri: driUserId });
+  };
+
+  const handleDeleteTodo = (todoId) => {
+    if (confirm("Are you sure you want to delete this task?")) {
+      deleteTodoMutation.mutate(todoId);
+    }
   };
 
   const handleAddNote = () => {
@@ -252,8 +309,13 @@ export default function Dashboard() {
                 setNewTodoTitle={setNewTodoTitle}
                 newTodoDueDate={newTodoDueDate}
                 setNewTodoDueDate={setNewTodoDueDate}
+                newTodoDri={newTodoDri}
+                setNewTodoDri={setNewTodoDri}
                 handleAddTodo={handleAddTodo}
                 toggleTodoMutation={toggleTodoMutation}
+                handleDeleteTodo={handleDeleteTodo}
+                members={members}
+                onUpdateDri={handleUpdateDri}
               />
 
               <NoteList
