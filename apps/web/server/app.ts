@@ -89,22 +89,6 @@ if (process.env.AUTH_SECRET) {
       skipCSRFCheck,
       session: { strategy: 'jwt' },
       callbacks: {
-        async jwt({ token, user, account }) {
-          // On sign-in, resolve the stable database user ID
-          if (user && account) {
-            if (account.provider === 'google' && user.email) {
-              // Look up user in auth_users by email to get their stable DB ID
-              const dbUser = await adapter.getUserByEmail?.(user.email);
-              if (dbUser) {
-                token.sub = dbUser.id;
-                token.name = dbUser.name || user.name;
-                token.email = dbUser.email;
-              }
-            }
-            // For credentials, authorize already returns the DB user, so sub is correct
-          }
-          return token;
-        },
         session({ session, token }) {
           if (token.sub) {
             session.user.id = token.sub;
