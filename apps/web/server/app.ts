@@ -90,7 +90,7 @@ if (process.env.AUTH_SECRET) {
       session: { strategy: 'jwt' },
       callbacks: {
         async jwt({ token, user, account }) {
-          // On sign-in, resolve the stable DB user ID by email
+          // On sign-in, ensure user exists in auth_users and resolve stable ID
           if (user && account && token.email && pool) {
             try {
               const { rows } = await pool.query(
@@ -99,6 +99,14 @@ if (process.env.AUTH_SECRET) {
               );
               if (rows.length > 0) {
                 token.sub = rows[0].id;
+              } else {
+                // First login — create auth_users row so member lookups work
+                const newId = token.sub || crypto.randomUUID();
+                await pool.query(
+                  'INSERT INTO auth_users (id, email, name, image) VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING',
+                  [newId, token.email, token.name || null, token.picture || null]
+                );
+                token.sub = newId;
               }
             } catch {
               // DB lookup failed — fall through with default sub

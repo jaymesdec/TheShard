@@ -286,11 +286,11 @@ export default function GroupsPage() {
                 <button
                   onClick={handleCreateGroup}
                   disabled={
-                    !newGroupName.trim() || createGroupMutation.isLoading
+                    !newGroupName.trim() || createGroupMutation.isPending
                   }
                   className="px-6 py-3 bg-[#2563FF] text-white rounded-lg font-medium hover:bg-[#2E69DE] disabled:opacity-50"
                 >
-                  {createGroupMutation.isLoading ? "Creating..." : "Create"}
+                  {createGroupMutation.isPending ? "Creating..." : "Create"}
                 </button>
                 <button
                   onClick={() => {
@@ -319,10 +319,10 @@ export default function GroupsPage() {
                   </div>
                   <button
                     onClick={() => handleAcceptInvite(invite.id)}
-                    disabled={acceptInvitationMutation.isLoading}
+                    disabled={acceptInvitationMutation.isPending}
                     className="px-4 py-2 bg-[#2563FF] text-white rounded-lg font-medium hover:bg-[#2E69DE] disabled:opacity-50"
                   >
-                    {acceptInvitationMutation.isLoading ? "Accepting..." : "Accept"}
+                    {acceptInvitationMutation.isPending ? "Accepting..." : "Accept"}
                   </button>
                 </div>
               ))}
@@ -387,11 +387,11 @@ export default function GroupsPage() {
                     className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg"
                   >
                     <div className="w-10 h-10 rounded-full bg-[#2563FF] flex items-center justify-center text-white font-semibold">
-                      {(member.name || member.email).charAt(0).toUpperCase()}
+                      {(member.name || member.email || '?').charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <div className="font-medium text-gray-800">
-                        {member.name || member.email}
+                        {member.name || member.email || 'Unknown'}
                       </div>
                       {member.name && (
                         <div className="text-sm text-gray-500">
@@ -420,10 +420,10 @@ export default function GroupsPage() {
                 />
                 <button
                   onClick={handleInviteByEmail}
-                  disabled={!inviteEmail.trim() || inviteByEmailMutation.isLoading}
+                  disabled={!inviteEmail.trim() || inviteByEmailMutation.isPending}
                   className="px-6 py-3 bg-[#2563FF] text-white rounded-lg font-medium hover:bg-[#2E69DE] disabled:opacity-50"
                 >
-                  {inviteByEmailMutation.isLoading ? "Inviting..." : "Send Invite"}
+                  {inviteByEmailMutation.isPending ? "Inviting..." : "Send Invite"}
                 </button>
               </div>
               <p className="text-xs text-gray-500">The invited person can accept from their own account on another device.</p>
@@ -469,7 +469,7 @@ export default function GroupsPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-semibold">
-                          {(foundUser.name || foundUser.email)
+                          {(foundUser.name || foundUser.email || '?')
                             .charAt(0)
                             .toUpperCase()}
                         </div>
@@ -487,7 +487,7 @@ export default function GroupsPage() {
                       <button
                         onClick={() => handleAddMember(foundUser.id)}
                         disabled={
-                          addMemberMutation.isLoading ||
+                          addMemberMutation.isPending ||
                           members.some((m) => m.id === foundUser.id)
                         }
                         className="px-4 py-2 bg-[#2563FF] text-white rounded-lg font-medium hover:bg-[#2E69DE] disabled:opacity-50 flex items-center gap-2"

@@ -14,11 +14,11 @@ export default function MemberList({ members }) {
                                 className="flex gap-3 py-3 border-b border-[#F6F6F6]"
                             >
                                 <div className="w-7 h-7 rounded-full bg-[#2563FF] flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0">
-                                    {(member.name || member.email).charAt(0).toUpperCase()}
+                                    {(member.name || member.email || '?').charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex-1">
                                     <div className="text-[13px] font-medium">
-                                        {member.name || member.email}
+                                        {member.name || member.email || 'Unknown'}
                                     </div>
                                     {member.name && (
                                         <div className="text-[11px] text-[#B3B3B3]">

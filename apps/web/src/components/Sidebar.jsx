@@ -57,7 +57,7 @@ export default function Sidebar({
                                     }`}
                             >
                                 <div className="w-6 h-6 rounded bg-[#F3F4F6] flex items-center justify-center text-[10px] font-semibold">
-                                    {group.name.charAt(0).toUpperCase()}
+                                    {(group.name || '?').charAt(0).toUpperCase()}
                                 </div>
                                 <span>{group.name}</span>
                             </button>
