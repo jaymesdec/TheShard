@@ -92,6 +92,7 @@ if (process.env.AUTH_SECRET) {
         async jwt({ token, user, account }) {
           // On sign-in, ensure user exists in auth_users and resolve stable UUID
           if (user && account && token.email && pool) {
+            const oldSub = token.sub; // Google's sub before we resolve
             try {
               let { rows } = await pool.query(
                 'SELECT id FROM auth_users WHERE email = $1 LIMIT 1',
@@ -117,7 +118,20 @@ if (process.env.AUTH_SECRET) {
                 );
               }
               if (rows.length > 0) {
-                token.sub = rows[0].id;
+                const stableId = rows[0].id;
+                token.sub = stableId;
+                // Migrate app records from old Google sub to stable UUID
+                if (oldSub && oldSub !== stableId) {
+                  await Promise.allSettled([
+                    pool.query('UPDATE app_group_members SET user_id = $1 WHERE user_id = $2', [stableId, oldSub]),
+                    pool.query('UPDATE app_groups SET created_by = $1 WHERE created_by = $2', [stableId, oldSub]),
+                    pool.query('UPDATE app_todos SET created_by = $1 WHERE created_by = $2', [stableId, oldSub]),
+                    pool.query('UPDATE app_todos SET dri = $1 WHERE dri = $2', [stableId, oldSub]),
+                    pool.query('UPDATE app_notes SET created_by = $1 WHERE created_by = $2', [stableId, oldSub]),
+                    pool.query('UPDATE app_messages SET user_id = $1 WHERE user_id = $2', [stableId, oldSub]),
+                    pool.query('UPDATE app_group_invitations SET invited_by = $1 WHERE invited_by = $2', [stableId, oldSub]),
+                  ]);
+                }
               }
             } catch {
               // DB lookup failed — fall through with default sub
