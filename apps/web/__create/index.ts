@@ -108,23 +108,28 @@ if (process.env.AUTH_SECRET) {
       },
       callbacks: {
         async jwt({ token, user, account }) {
-          // On sign-in, ensure user exists in auth_users and resolve stable ID
+          // On sign-in, ensure user exists in auth_users and resolve stable UUID
           if (user && account && token.email && pool) {
             try {
-              const { rows } = await pool.query(
+              let { rows } = await pool.query(
                 'SELECT id FROM auth_users WHERE email = $1 LIMIT 1',
                 [token.email]
               );
-              if (rows.length > 0) {
-                token.sub = rows[0].id;
-              } else {
-                // First login — create auth_users row so member lookups work
-                const newId = token.sub || crypto.randomUUID();
+              if (rows.length === 0) {
+                // First login — create auth_users row with a proper UUID
+                const newId = crypto.randomUUID();
                 await pool.query(
-                  'INSERT INTO auth_users (id, email, name, image) VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING',
+                  'INSERT INTO auth_users (id, email, name, image) VALUES ($1::uuid, $2, $3, $4) ON CONFLICT (email) DO NOTHING',
                   [newId, token.email, token.name || null, token.picture || null]
                 );
-                token.sub = newId;
+                // Re-query in case of race (ON CONFLICT)
+                ({ rows } = await pool.query(
+                  'SELECT id FROM auth_users WHERE email = $1 LIMIT 1',
+                  [token.email]
+                ));
+              }
+              if (rows.length > 0) {
+                token.sub = rows[0].id;
               }
             } catch {
               // DB lookup failed — fall through with default sub
