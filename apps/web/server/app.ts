@@ -266,6 +266,9 @@ import * as notesRoute from '../src/app/api/notes/route.js';
 import * as noteByIdRoute from '../src/app/api/notes/[id]/route.js';
 import * as todosRoute from '../src/app/api/todos/route.js';
 import * as todoByIdRoute from '../src/app/api/todos/[id]/route.js';
+import * as groupInvitationsRoute from '../src/app/api/groups/invitations/route.js';
+import * as groupInvitationAcceptRoute from '../src/app/api/groups/invitations/[inviteId]/accept/route.js';
+import * as groupIdInvitationsRoute from '../src/app/api/groups/[id]/invitations/route.js';
 import * as usersSearchRoute from '../src/app/api/users/search/route.js';
 
 type RouteModule = Record<string, ((req: Request, ctx: any) => Response | Promise<Response>) | undefined>;
@@ -286,6 +289,9 @@ function mountApiRoute(path: string, mod: RouteModule) {
 mountApiRoute('/auth/expo-web-success', authExpoWebSuccess as RouteModule);
 mountApiRoute('/auth/token', authToken as RouteModule);
 mountApiRoute('/groups', groupsRoute as RouteModule);
+mountApiRoute('/groups/invitations', groupInvitationsRoute as RouteModule);
+mountApiRoute('/groups/invitations/:inviteId/accept', groupInvitationAcceptRoute as RouteModule);
+mountApiRoute('/groups/:id/invitations', groupIdInvitationsRoute as RouteModule);
 mountApiRoute('/groups/:id/members', groupMembersRoute as RouteModule);
 mountApiRoute('/groups/:id/messages', groupMessagesRoute as RouteModule);
 mountApiRoute('/notes', notesRoute as RouteModule);
