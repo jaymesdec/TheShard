@@ -127,6 +127,12 @@ if (process.env.AUTH_SECRET) {
                   'SELECT id FROM auth_users WHERE email = $1 LIMIT 1',
                   [token.email]
                 ));
+              } else if (token.name || token.picture) {
+                // Returning user — keep name & image in sync with Google profile
+                await pool.query(
+                  'UPDATE auth_users SET name = COALESCE($1, name), image = COALESCE($2, image) WHERE email = $3',
+                  [token.name || null, token.picture || null, token.email]
+                );
               }
               if (rows.length > 0) {
                 token.sub = rows[0].id;
