@@ -91,6 +91,7 @@ if (process.env.AUTH_SECRET) {
       callbacks: {
         async jwt({ token, user, account }) {
           // On sign-in, ensure user exists in auth_users and resolve stable UUID
+          console.log('[JWT callback] sign-in event:', { hasUser: !!user, hasAccount: !!account, email: token.email, hasPool: !!pool });
           if (user && account && token.email && pool) {
             const oldSub = token.sub; // Google's sub before we resolve
             try {
@@ -133,8 +134,8 @@ if (process.env.AUTH_SECRET) {
                   ]);
                 }
               }
-            } catch {
-              // DB lookup failed — fall through with default sub
+            } catch (err) {
+              console.error('[JWT callback] DB error:', err);
             }
           }
           return token;

@@ -68,6 +68,7 @@ export default function NeonAdapter(client: Pool): NeonAdapter {
 
 		async createUser(user: Omit<AdapterUser, 'id'>) {
 			const { name, email, emailVerified, image } = user;
+			console.log('[Adapter] createUser called:', { name, email });
 			const sql = `
         INSERT INTO auth_users (name, email, "emailVerified", image)
         VALUES ($1, $2, $3, $4)
@@ -78,6 +79,7 @@ export default function NeonAdapter(client: Pool): NeonAdapter {
 				emailVerified,
 				image,
 			]);
+			console.log('[Adapter] createUser result:', result.rows[0]);
 			return result.rows[0];
 		},
 		async getUser(id: string) {
