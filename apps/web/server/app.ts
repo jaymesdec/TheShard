@@ -11,7 +11,7 @@ import { skipCSRFCheck } from '@auth/core';
 import Credentials from '@auth/core/providers/credentials';
 import Google from '@auth/core/providers/google';
 import { authHandler, initAuthConfig } from '@hono/auth-js';
-import { Pool, neonConfig } from '@neondatabase/serverless';
+import { Pool, neon, neonConfig } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
 import { Hono } from 'hono';
 import { contextStorage } from 'hono/context-storage';
@@ -33,6 +33,9 @@ neonConfig.webSocketConstructor = ws;
 const pool = process.env.DATABASE_URL
   ? new Pool({ connectionString: process.env.DATABASE_URL })
   : null;
+
+// HTTP-based driver for use in serverless JWT callbacks (Pool/WebSocket can be unreliable)
+const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
 
 const adapter = pool ? NeonAdapter(pool) : MockAdapter();
 
@@ -86,34 +89,33 @@ if (process.env.AUTH_SECRET) {
         signIn: '/account/signin',
         signOut: '/account/logout',
       },
+      adapter,
       skipCSRFCheck,
       session: { strategy: 'jwt' },
       callbacks: {
         async jwt({ token, user, account }) {
           // On sign-in, ensure user exists in auth_users and resolve stable UUID
-          console.log('[JWT callback] sign-in event:', { hasUser: !!user, hasAccount: !!account, email: token.email, hasPool: !!pool });
-          if (user && account && token.email && pool) {
+          if (user && account && token.email && sql) {
             const oldSub = token.sub; // Google's sub before we resolve
             try {
-              let { rows } = await pool.query(
+              let rows = await sql(
                 'SELECT id FROM auth_users WHERE email = $1 LIMIT 1',
                 [token.email]
               );
               if (rows.length === 0) {
                 // First login — create auth_users row with a proper UUID
                 const newId = crypto.randomUUID();
-                await pool.query(
+                await sql(
                   'INSERT INTO auth_users (id, email, name, image) VALUES ($1::uuid, $2, $3, $4) ON CONFLICT (email) DO NOTHING',
                   [newId, token.email, token.name || null, token.picture || null]
                 );
-                // Re-query in case of race (ON CONFLICT)
-                ({ rows } = await pool.query(
+                rows = await sql(
                   'SELECT id FROM auth_users WHERE email = $1 LIMIT 1',
                   [token.email]
-                ));
+                );
               } else if (token.name || token.picture) {
                 // Returning user — keep name & image in sync with Google profile
-                await pool.query(
+                await sql(
                   'UPDATE auth_users SET name = COALESCE($1, name), image = COALESCE($2, image) WHERE email = $3',
                   [token.name || null, token.picture || null, token.email]
                 );
@@ -124,13 +126,13 @@ if (process.env.AUTH_SECRET) {
                 // Migrate app records from old Google sub to stable UUID
                 if (oldSub && oldSub !== stableId) {
                   await Promise.allSettled([
-                    pool.query('UPDATE app_group_members SET user_id = $1 WHERE user_id = $2', [stableId, oldSub]),
-                    pool.query('UPDATE app_groups SET created_by = $1 WHERE created_by = $2', [stableId, oldSub]),
-                    pool.query('UPDATE app_todos SET created_by = $1 WHERE created_by = $2', [stableId, oldSub]),
-                    pool.query('UPDATE app_todos SET dri = $1 WHERE dri = $2', [stableId, oldSub]),
-                    pool.query('UPDATE app_notes SET created_by = $1 WHERE created_by = $2', [stableId, oldSub]),
-                    pool.query('UPDATE app_messages SET user_id = $1 WHERE user_id = $2', [stableId, oldSub]),
-                    pool.query('UPDATE app_group_invitations SET invited_by = $1 WHERE invited_by = $2', [stableId, oldSub]),
+                    sql('UPDATE app_group_members SET user_id = $1 WHERE user_id = $2', [stableId, oldSub]),
+                    sql('UPDATE app_groups SET created_by = $1 WHERE created_by = $2', [stableId, oldSub]),
+                    sql('UPDATE app_todos SET created_by = $1 WHERE created_by = $2', [stableId, oldSub]),
+                    sql('UPDATE app_todos SET dri = $1 WHERE dri = $2', [stableId, oldSub]),
+                    sql('UPDATE app_notes SET created_by = $1 WHERE created_by = $2', [stableId, oldSub]),
+                    sql('UPDATE app_messages SET user_id = $1 WHERE user_id = $2', [stableId, oldSub]),
+                    sql('UPDATE app_group_invitations SET invited_by = $1 WHERE invited_by = $2', [stableId, oldSub]),
                   ]);
                 }
               }

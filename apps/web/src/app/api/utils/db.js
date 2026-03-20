@@ -202,7 +202,7 @@ export const db = {
           const rows = await sql`
             SELECT gm.user_id, u.name, u.email, u.image, gm.joined_at
             FROM app_group_members gm
-            LEFT JOIN auth_users u ON u.id = gm.user_id
+            LEFT JOIN auth_users u ON u.id::text = gm.user_id
             WHERE gm.group_id = ${groupId}
             ORDER BY gm.joined_at ASC
           `;
@@ -678,7 +678,7 @@ export const db = {
           return await sql`
             SELECT m.*, COALESCE(u.name, u.email, m.user_id) AS user_name
             FROM app_messages m
-            LEFT JOIN auth_users u ON u.id = m.user_id
+            LEFT JOIN auth_users u ON u.id::text = m.user_id
             WHERE m.group_id = ${groupId}
             ORDER BY m.created_at ASC
           `;
