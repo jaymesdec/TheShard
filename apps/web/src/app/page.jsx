@@ -23,6 +23,19 @@ export default function Dashboard() {
   const [newNoteContent, setNewNoteContent] = useState("");
   const [showAddNote, setShowAddNote] = useState(false);
 
+  // Fetch current user's profile color from DB (JWT may be stale)
+  const { data: profileData } = useQuery({
+    queryKey: ["userProfile"],
+    queryFn: async () => {
+      const response = await fetch("/api/users/profile");
+      if (!response.ok) throw new Error("Failed to fetch profile");
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
+  const userProfileColor = profileData?.profile_color || user?.profile_color || '#2563FF';
+
   // Fetch groups
   const { data: groupsData } = useQuery({
     queryKey: ["groups"],
@@ -62,7 +75,7 @@ export default function Dashboard() {
   });
 
   const members = activeGroupId === 'personal' && user
-    ? [{ id: user.id, name: user.name, email: user.email }]
+    ? [{ id: user.id, name: user.name, email: user.email, profile_color: userProfileColor }]
     : membersData?.members || [];
 
   // Fetch notes
@@ -286,7 +299,7 @@ export default function Dashboard() {
               <UserAvatar
                 name={user.name}
                 email={user.email}
-                profileColor={user.profile_color}
+                profileColor={userProfileColor}
                 size="sm"
               />
             </a>

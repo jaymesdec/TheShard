@@ -39,7 +39,11 @@ const ensureSchema = async () => {
   )`;
 
   await sql`ALTER TABLE app_todos ADD COLUMN IF NOT EXISTS dri TEXT NULL`;
-  await sql`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS profile_color TEXT NULL`;
+  try {
+    await sql`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS profile_color TEXT NULL`;
+  } catch {
+    // auth_users may not exist yet (created by Auth.js on first login)
+  }
 
   await sql`CREATE TABLE IF NOT EXISTS app_notes (
     id TEXT PRIMARY KEY,

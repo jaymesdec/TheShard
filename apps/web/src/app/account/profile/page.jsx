@@ -24,7 +24,7 @@ export default function ProfilePage() {
   const queryClient = useQueryClient();
   const [selectedColor, setSelectedColor] = useState(null);
 
-  const { data: profileData, isLoading: profileLoading } = useQuery({
+  const { data: profileData, isLoading: profileLoading, isError: profileError } = useQuery({
     queryKey: ["userProfile"],
     queryFn: async () => {
       const response = await fetch("/api/users/profile");
@@ -32,6 +32,7 @@ export default function ProfilePage() {
       return response.json();
     },
     enabled: !!user,
+    retry: 1,
   });
 
   const currentColor = selectedColor ?? profileData?.profile_color ?? '#2563FF';
@@ -44,7 +45,10 @@ export default function ProfilePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile_color: color }),
       });
-      if (!response.ok) throw new Error("Failed to update color");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Save failed (${response.status})`);
+      }
       return response.json();
     },
     onSuccess: (data) => {
@@ -63,7 +67,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (userLoading || profileLoading) {
+  if (userLoading || (profileLoading && !profileError)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-lg">Loading...</div>
@@ -148,6 +152,11 @@ export default function ProfilePage() {
             {updateColorMutation.isSuccess && !hasChanges && (
               <p className="text-sm text-green-600 mt-2 text-center">
                 Color updated!
+              </p>
+            )}
+            {updateColorMutation.isError && (
+              <p className="text-sm text-red-600 mt-2 text-center">
+                {updateColorMutation.error?.message || "Failed to save color"}
               </p>
             )}
           </div>
