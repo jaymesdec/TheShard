@@ -16,6 +16,7 @@ export default function CreateAuth() {
 					email: token.email,
 					name: token.name,
 					image: token.picture,
+					profile_color: token.profile_color || '#2563FF',
 				},
 				expires: token.exp.toString(),
 			};

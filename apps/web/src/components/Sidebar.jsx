@@ -3,6 +3,7 @@ import {
     Users,
     Calendar as CalendarIcon,
     Settings,
+    User,
     ChevronDown,
 } from "lucide-react";
 
@@ -86,6 +87,16 @@ export default function Sidebar({
                     >
                         <Settings size={20} />
                         <span>Manage Groups</span>
+                    </a>
+                </div>
+                {/* Profile */}
+                <div className="mt-2">
+                    <a
+                        href="/account/profile"
+                        className="flex items-center gap-3 h-[40px] text-[#7A7A7A] font-medium hover:text-[#2563FF]"
+                    >
+                        <User size={20} />
+                        <span>Profile</span>
                     </a>
                 </div>
             </div>

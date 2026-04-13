@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, Trash2, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
+import UserAvatar from "@/components/UserAvatar";
 
 function DriBadge({ todo, members, onUpdateDri }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -20,9 +21,12 @@ function DriBadge({ todo, members, onUpdateDri }) {
                 title={displayName ? `DRI: ${displayName}` : "Assign DRI"}
             >
                 {initials ? (
-                    <span className="w-4 h-4 rounded-full bg-[#4338CA] text-white text-[9px] flex items-center justify-center font-semibold">
-                        {initials}
-                    </span>
+                    <UserAvatar
+                        name={driMember?.name}
+                        email={driMember?.email}
+                        profileColor={driMember?.profile_color}
+                        size="xs"
+                    />
                 ) : (
                     <span className="w-4 h-4 rounded-full bg-[#C7D2FE] text-[#4338CA] text-[9px] flex items-center justify-center">?</span>
                 )}
@@ -45,9 +49,12 @@ function DriBadge({ todo, members, onUpdateDri }) {
                                     member.id === todo.dri ? "bg-[#EEF2FF] font-medium" : ""
                                 }`}
                             >
-                                <span className="w-5 h-5 rounded-full bg-[#4338CA] text-white text-[10px] flex items-center justify-center font-semibold flex-shrink-0">
-                                    {(member.name || member.email || "?").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
-                                </span>
+                                <UserAvatar
+                                    name={member.name}
+                                    email={member.email}
+                                    profileColor={member.profile_color}
+                                    size="xs"
+                                />
                                 <span className="truncate">{member.name || member.email}</span>
                             </button>
                         ))}

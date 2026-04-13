@@ -113,7 +113,7 @@ if (process.env.AUTH_SECRET) {
             const oldSub = token.sub; // Google's sub before we resolve
             try {
               let { rows } = await pool.query(
-                'SELECT id FROM auth_users WHERE email = $1 LIMIT 1',
+                'SELECT id, profile_color FROM auth_users WHERE email = $1 LIMIT 1',
                 [token.email]
               );
               if (rows.length === 0) {
@@ -125,7 +125,7 @@ if (process.env.AUTH_SECRET) {
                 );
                 // Re-query in case of race (ON CONFLICT)
                 ({ rows } = await pool.query(
-                  'SELECT id FROM auth_users WHERE email = $1 LIMIT 1',
+                  'SELECT id, profile_color FROM auth_users WHERE email = $1 LIMIT 1',
                   [token.email]
                 ));
               } else if (token.name || token.picture) {
@@ -138,6 +138,7 @@ if (process.env.AUTH_SECRET) {
               if (rows.length > 0) {
                 const stableId = rows[0].id;
                 token.sub = stableId;
+                token.profile_color = rows[0].profile_color || null;
                 // Migrate app records from old Google sub to stable UUID
                 if (oldSub && oldSub !== stableId) {
                   await Promise.allSettled([
@@ -161,6 +162,7 @@ if (process.env.AUTH_SECRET) {
           if (token.sub) {
             session.user.id = token.sub;
           }
+          (session.user as any).profile_color = (token as any).profile_color || '#2563FF';
           return session;
         },
       },

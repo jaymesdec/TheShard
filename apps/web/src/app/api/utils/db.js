@@ -39,6 +39,7 @@ const ensureSchema = async () => {
   )`;
 
   await sql`ALTER TABLE app_todos ADD COLUMN IF NOT EXISTS dri TEXT NULL`;
+  await sql`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS profile_color TEXT NULL`;
 
   await sql`CREATE TABLE IF NOT EXISTS app_notes (
     id TEXT PRIMARY KEY,
@@ -200,7 +201,7 @@ export const db = {
         // Try Auth.js users table if present; fallback to IDs-only
         try {
           const rows = await sql`
-            SELECT gm.user_id, u.name, u.email, u.image, gm.joined_at
+            SELECT gm.user_id, u.name, u.email, u.image, u.profile_color, gm.joined_at
             FROM app_group_members gm
             LEFT JOIN auth_users u ON u.id::text = gm.user_id
             WHERE gm.group_id = ${groupId}
@@ -212,6 +213,7 @@ export const db = {
             name: r.name || r.email || r.user_id,
             email: r.email ?? null,
             image: r.image ?? null,
+            profile_color: r.profile_color ?? null,
             joined_at: r.joined_at,
           }));
         } catch {
@@ -227,6 +229,7 @@ export const db = {
             name: null,
             email: null,
             image: null,
+            profile_color: null,
             joined_at: r.joined_at,
           }));
         }
@@ -241,12 +244,50 @@ export const db = {
   },
 
   users: {
+    getById: async (userId) => {
+      if (usePostgres) {
+        await ensureSchema();
+        try {
+          const rows = await sql`
+            SELECT id, name, email, image, profile_color
+            FROM auth_users
+            WHERE id::text = ${userId}
+            LIMIT 1
+          `;
+          return rows[0] || null;
+        } catch {
+          return null;
+        }
+      }
+      const store = readDb();
+      return (store.users || []).find(u => u.id === userId) || null;
+    },
+
+    updateProfileColor: async (userId, color) => {
+      if (usePostgres) {
+        await ensureSchema();
+        const rows = await sql`
+          UPDATE auth_users
+          SET profile_color = ${color}
+          WHERE id::text = ${userId}
+          RETURNING id, name, email, image, profile_color
+        `;
+        return rows[0] || null;
+      }
+      const store = readDb();
+      const userIndex = (store.users || []).findIndex(u => u.id === userId);
+      if (userIndex === -1) return null;
+      store.users[userIndex].profile_color = color;
+      writeDb(store);
+      return store.users[userIndex];
+    },
+
     search: async (emailQuery) => {
       if (usePostgres) {
         await ensureSchema();
         try {
           const rows = await sql`
-            SELECT id, name, email, image
+            SELECT id, name, email, image, profile_color
             FROM auth_users
             WHERE email ILIKE ${'%' + emailQuery + '%'}
             LIMIT 20
@@ -676,7 +717,7 @@ export const db = {
         await ensureSchema();
         try {
           return await sql`
-            SELECT m.*, COALESCE(u.name, u.email, m.user_id) AS user_name
+            SELECT m.*, COALESCE(u.name, u.email, m.user_id) AS user_name, u.profile_color
             FROM app_messages m
             LEFT JOIN auth_users u ON u.id::text = m.user_id
             WHERE m.group_id = ${groupId}

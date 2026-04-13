@@ -1,3 +1,5 @@
+import UserAvatar from "@/components/UserAvatar";
+
 export default function MemberList({ members }) {
     return (
         <div className="w-[300px] h-full border-l border-[#EDEDED] flex flex-col">
@@ -13,9 +15,12 @@ export default function MemberList({ members }) {
                                 key={member.id}
                                 className="flex gap-3 py-3 border-b border-[#F6F6F6]"
                             >
-                                <div className="w-7 h-7 rounded-full bg-[#2563FF] flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0">
-                                    {(member.name || member.email || '?').charAt(0).toUpperCase()}
-                                </div>
+                                <UserAvatar
+                                    name={member.name}
+                                    email={member.email}
+                                    profileColor={member.profile_color}
+                                    size="sm"
+                                />
                                 <div className="flex-1">
                                     <div className="text-[13px] font-medium">
                                         {member.name || member.email || 'Unknown'}

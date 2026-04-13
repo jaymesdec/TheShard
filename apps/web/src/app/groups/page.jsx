@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plus, UserPlus, Search } from "lucide-react";
 import useUser from "@/utils/useUser";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function GroupsPage() {
   const { data: user, loading: userLoading } = useUser();
@@ -386,9 +387,12 @@ export default function GroupsPage() {
                     key={member.id}
                     className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg"
                   >
-                    <div className="w-10 h-10 rounded-full bg-[#2563FF] flex items-center justify-center text-white font-semibold">
-                      {(member.name || member.email || '?').charAt(0).toUpperCase()}
-                    </div>
+                    <UserAvatar
+                      name={member.name}
+                      email={member.email}
+                      profileColor={member.profile_color}
+                      size="md"
+                    />
                     <div>
                       <div className="font-medium text-gray-800">
                         {member.name || member.email || 'Unknown'}
@@ -468,11 +472,12 @@ export default function GroupsPage() {
                       className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-semibold">
-                          {(foundUser.name || foundUser.email || '?')
-                            .charAt(0)
-                            .toUpperCase()}
-                        </div>
+                        <UserAvatar
+                          name={foundUser.name}
+                          email={foundUser.email}
+                          profileColor={foundUser.profile_color}
+                          size="md"
+                        />
                         <div>
                           <div className="font-medium text-gray-800">
                             {foundUser.name || foundUser.email}

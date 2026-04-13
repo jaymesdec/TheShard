@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import MemberList from "@/components/MemberList";
 import NoteList from "@/components/NoteList";
 import TodoList from "@/components/TodoList";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function Dashboard() {
   const { data: user, loading: userLoading } = useUser();
@@ -281,7 +282,14 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="w-6 h-6 border-4 border-[#2563FF] rounded-full"></div>
+            <a href="/account/profile">
+              <UserAvatar
+                name={user.name}
+                email={user.email}
+                profileColor={user.profile_color}
+                size="sm"
+              />
+            </a>
 
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
