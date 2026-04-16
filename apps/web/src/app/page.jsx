@@ -20,7 +20,8 @@ export default function Dashboard() {
   const [showAddTodo, setShowAddTodo] = useState(false);
 
   // Note State
-  const [newNoteContent, setNewNoteContent] = useState("");
+  const [newNoteTitle, setNewNoteTitle] = useState("");
+  const [newNoteBody, setNewNoteBody] = useState("");
   const [showAddNote, setShowAddNote] = useState(false);
 
   // Fetch current user's profile color from DB (JWT may be stale)
@@ -198,7 +199,8 @@ export default function Dashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
-      setNewNoteContent("");
+      setNewNoteTitle("");
+      setNewNoteBody("");
       setShowAddNote(false);
     },
   });
@@ -239,10 +241,11 @@ export default function Dashboard() {
   };
 
   const handleAddNote = () => {
-    if (!newNoteContent.trim() || !activeGroupId) return;
+    if (!newNoteTitle.trim() || !newNoteBody.trim() || !activeGroupId) return;
     createNoteMutation.mutate({
       groupId: activeGroupId,
-      content: newNoteContent.trim(),
+      title: newNoteTitle.trim(),
+      body: newNoteBody.trim(),
     });
   };
 
@@ -343,8 +346,10 @@ export default function Dashboard() {
                 notes={notes}
                 showAddNote={showAddNote}
                 setShowAddNote={setShowAddNote}
-                newNoteContent={newNoteContent}
-                setNewNoteContent={setNewNoteContent}
+                newNoteTitle={newNoteTitle}
+                setNewNoteTitle={setNewNoteTitle}
+                newNoteBody={newNoteBody}
+                setNewNoteBody={setNewNoteBody}
                 handleAddNote={handleAddNote}
                 handleDeleteNote={handleDeleteNote}
               />

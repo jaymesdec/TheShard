@@ -42,14 +42,26 @@ export async function POST(request) {
     }
 
     const userId = session.user.id;
-    const body = await request.json();
-    const { groupId, content } = body;
+    const requestPayload = await request.json();
+    const { groupId, title, body } = requestPayload;
 
-    if (!content) {
-      return Response.json(
-        { error: "Content is required" },
-        { status: 400 },
-      );
+    // Both title and body required; trim whitespace; cap lengths to protect DB.
+    const MAX_TITLE_LENGTH = 200;
+    const MAX_BODY_LENGTH = 10_000;
+    const cleanTitle = typeof title === "string" ? title.trim() : "";
+    const cleanBody = typeof body === "string" ? body.trim() : "";
+
+    if (!cleanTitle) {
+      return Response.json({ error: "Title is required" }, { status: 400 });
+    }
+    if (!cleanBody) {
+      return Response.json({ error: "Body is required" }, { status: 400 });
+    }
+    if (cleanTitle.length > MAX_TITLE_LENGTH) {
+      return Response.json({ error: `Title must be ${MAX_TITLE_LENGTH} characters or fewer` }, { status: 400 });
+    }
+    if (cleanBody.length > MAX_BODY_LENGTH) {
+      return Response.json({ error: `Body must be ${MAX_BODY_LENGTH} characters or fewer` }, { status: 400 });
     }
 
     if (groupId && groupId !== 'personal') {
@@ -63,7 +75,11 @@ export async function POST(request) {
       }
     }
 
-    const note = await db.notes.create(userId, { groupId, content });
+    const note = await db.notes.create(userId, {
+      groupId,
+      title: cleanTitle,
+      body: cleanBody,
+    });
     return Response.json({ note }, { status: 201 });
 
   } catch (error) {

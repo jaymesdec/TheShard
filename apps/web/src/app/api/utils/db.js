@@ -53,6 +53,9 @@ const ensureSchema = async () => {
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
 
+  // Notes gained a separate title field; existing rows get NULL titles.
+  await sql`ALTER TABLE app_notes ADD COLUMN IF NOT EXISTS title TEXT NULL`;
+
   await sql`CREATE TABLE IF NOT EXISTS app_messages (
     id TEXT PRIMARY KEY,
     group_id TEXT NOT NULL REFERENCES app_groups(id) ON DELETE CASCADE,
@@ -631,10 +634,16 @@ export const db = {
     create: async (userId, data) => {
       if (usePostgres) {
         await ensureSchema();
-        const id = generateId();
+        const noteId = generateId();
         const rows = await sql`
-          INSERT INTO app_notes (id, created_by, content, group_id)
-          VALUES (${id}, ${userId}, ${data.content}, ${data.groupId === 'personal' ? null : data.groupId})
+          INSERT INTO app_notes (id, created_by, title, content, group_id)
+          VALUES (
+            ${noteId},
+            ${userId},
+            ${data.title ?? null},
+            ${data.body ?? data.content ?? ''},
+            ${data.groupId === 'personal' ? null : data.groupId}
+          )
           RETURNING *
         `;
         return rows[0];
@@ -644,7 +653,8 @@ export const db = {
       const newNote = {
         id: generateId(),
         created_by: userId,
-        content: data.content,
+        title: data.title ?? null,
+        content: data.body ?? data.content ?? '',
         group_id: data.groupId === 'personal' ? null : data.groupId,
         created_at: new Date().toISOString()
       };
@@ -657,9 +667,12 @@ export const db = {
     update: async (noteId, data) => {
       if (usePostgres) {
         await ensureSchema();
+        const nextBody = data.body ?? data.content ?? null;
         const rows = await sql`
           UPDATE app_notes
-          SET content = COALESCE(${data.content ?? null}, content)
+          SET
+            title = COALESCE(${data.title ?? null}, title),
+            content = COALESCE(${nextBody}, content)
           WHERE id = ${noteId}
           RETURNING *
         `;
@@ -667,12 +680,18 @@ export const db = {
       }
 
       const store = readDb();
-      const index = (store.notes || []).findIndex(n => n.id === noteId);
-      if (index === -1) return null;
-      const updated = { ...store.notes[index], ...data };
-      store.notes[index] = updated;
+      const noteIndex = (store.notes || []).findIndex(n => n.id === noteId);
+      if (noteIndex === -1) return null;
+      const existingNote = store.notes[noteIndex];
+      const updatedNote = {
+        ...existingNote,
+        ...(data.title !== undefined ? { title: data.title } : {}),
+        ...(data.body !== undefined ? { content: data.body } : {}),
+        ...(data.content !== undefined ? { content: data.content } : {}),
+      };
+      store.notes[noteIndex] = updatedNote;
       writeDb(store);
-      return updated;
+      return updatedNote;
     },
 
     checkAccess: async (userId, noteId) => {

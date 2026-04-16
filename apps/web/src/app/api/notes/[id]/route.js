@@ -10,11 +10,17 @@ export async function PATCH(request, { params }) {
 
     const noteId = params.id;
     const userId = session.user.id;
-    const body = await request.json();
-    const { content } = body;
+    const requestPayload = await request.json();
+    const nextTitle = typeof requestPayload.title === "string" ? requestPayload.title.trim() : undefined;
+    const nextBody =
+      typeof requestPayload.body === "string"
+        ? requestPayload.body.trim()
+        : typeof requestPayload.content === "string"
+        ? requestPayload.content.trim()
+        : undefined;
 
-    if (!content || !content.trim()) {
-      return Response.json({ error: "Content is required" }, { status: 400 });
+    if (nextTitle === undefined && nextBody === undefined) {
+      return Response.json({ error: "Provide a title or body to update" }, { status: 400 });
     }
 
     const hasAccess = await db.notes.checkAccess(userId, noteId);
@@ -22,7 +28,10 @@ export async function PATCH(request, { params }) {
       return Response.json({ error: "Note not found or access denied" }, { status: 403 });
     }
 
-    const note = await db.notes.update(noteId, { content: content.trim() });
+    const note = await db.notes.update(noteId, {
+      ...(nextTitle !== undefined ? { title: nextTitle } : {}),
+      ...(nextBody !== undefined ? { body: nextBody } : {}),
+    });
     return Response.json({ note });
   } catch (error) {
     console.error("Error updating note:", error);

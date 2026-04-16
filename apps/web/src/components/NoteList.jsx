@@ -5,11 +5,15 @@ export default function NoteList({
     notes,
     showAddNote,
     setShowAddNote,
-    newNoteContent,
-    setNewNoteContent,
+    newNoteTitle,
+    setNewNoteTitle,
+    newNoteBody,
+    setNewNoteBody,
     handleAddNote,
     handleDeleteNote,
 }) {
+    const isAddDisabled = !newNoteTitle.trim() || !newNoteBody.trim();
+
     return (
         <div className="bg-white border border-[#F1F1F1] rounded-xl p-8 mt-6">
             <div className="flex items-center justify-between mb-6">
@@ -29,16 +33,23 @@ export default function NoteList({
             {/* Add Note Form */}
             {showAddNote && (
                 <div className="mb-6 border-2 border-dashed border-[#E2E2E2] rounded-lg p-6">
+                    <input
+                        type="text"
+                        placeholder="Title"
+                        value={newNoteTitle}
+                        onChange={(event) => setNewNoteTitle(event.target.value)}
+                        className="w-full text-[15px] font-semibold text-[#2B2B2B] bg-transparent outline-none mb-3"
+                    />
                     <textarea
-                        placeholder="Type your note..."
-                        value={newNoteContent}
-                        onChange={(e) => setNewNoteContent(e.target.value)}
+                        placeholder="Write the body of your note..."
+                        value={newNoteBody}
+                        onChange={(event) => setNewNoteBody(event.target.value)}
                         className="w-full text-[13px] text-[#2B2B2B] bg-transparent outline-none resize-none h-24"
                     />
                     <div className="flex items-center gap-4 mt-4">
                         <button
                             onClick={handleAddNote}
-                            disabled={!newNoteContent.trim()}
+                            disabled={isAddDisabled}
                             className="px-8 py-3 bg-[#2563FF] text-white text-[13px] font-semibold rounded-lg hover:bg-[#2E69DE] disabled:opacity-50"
                         >
                             Add note
@@ -46,7 +57,8 @@ export default function NoteList({
                         <button
                             onClick={() => {
                                 setShowAddNote(false);
-                                setNewNoteContent("");
+                                setNewNoteTitle("");
+                                setNewNoteBody("");
                             }}
                             className="text-[13px] text-[#A3A3A3]"
                         >
@@ -65,6 +77,9 @@ export default function NoteList({
                     >
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
+                                <h4 className="text-[14px] font-semibold text-[#2B2B2B] mb-1">
+                                    {note.title || "Untitled"}
+                                </h4>
                                 <p className="text-[13px] text-[#2B2B2B] whitespace-pre-wrap">
                                     {note.content}
                                 </p>
