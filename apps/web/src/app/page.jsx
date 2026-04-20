@@ -5,19 +5,13 @@ import useUser from "@/utils/useUser";
 import Sidebar from "@/components/Sidebar";
 import MemberList from "@/components/MemberList";
 import NoteList from "@/components/NoteList";
-import TodoList from "@/components/TodoList";
+import TodoBoard from "@/components/TodoBoard";
 import UserAvatar from "@/components/UserAvatar";
 
 export default function Dashboard() {
   const { data: user, loading: userLoading } = useUser();
   const queryClient = useQueryClient();
   const [selectedGroupId, setSelectedGroupId] = useState('personal');
-
-  // Todo State
-  const [newTodoTitle, setNewTodoTitle] = useState("");
-  const [newTodoDueDate, setNewTodoDueDate] = useState("");
-  const [newTodoDri, setNewTodoDri] = useState("");
-  const [showAddTodo, setShowAddTodo] = useState(false);
 
   // Note State
   const [newNoteTitle, setNewNoteTitle] = useState("");
@@ -51,18 +45,18 @@ export default function Dashboard() {
   const groups = groupsData?.groups || [];
   const activeGroupId = selectedGroupId;
 
-  // Fetch todos
-  const { data: todosData } = useQuery({
-    queryKey: ["todos", activeGroupId],
+  // Fetch todo lists
+  const { data: todoListsData } = useQuery({
+    queryKey: ["todoLists", activeGroupId],
     queryFn: async () => {
-      const response = await fetch(`/api/todos?groupId=${activeGroupId}`);
-      if (!response.ok) throw new Error("Failed to fetch todos");
+      const response = await fetch(`/api/todo-lists?groupId=${activeGroupId}`);
+      if (!response.ok) throw new Error("Failed to fetch todo lists");
       return response.json();
     },
     enabled: !!activeGroupId,
   });
 
-  const todos = todosData?.todos || [];
+  const todoLists = todoListsData?.lists || [];
 
   // Fetch members
   const { data: membersData } = useQuery({
@@ -93,22 +87,61 @@ export default function Dashboard() {
   const notes = notesData?.notes || [];
 
   // Mutations
-  const createTodoMutation = useMutation({
-    mutationFn: async (todoData) => {
-      const response = await fetch("/api/todos", {
+  const createListMutation = useMutation({
+    mutationFn: async (title) => {
+      const response = await fetch("/api/todo-lists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(todoData),
+        body: JSON.stringify({ title, groupId: activeGroupId }),
       });
-      if (!response.ok) throw new Error("Failed to create todo");
+      if (!response.ok) throw new Error("Failed to create list");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos"] });
-      setNewTodoTitle("");
-      setNewTodoDueDate("");
-      setNewTodoDri("");
-      setShowAddTodo(false);
+      queryClient.invalidateQueries({ queryKey: ["todoLists"] });
+    },
+  });
+
+  const updateListTitleMutation = useMutation({
+    mutationFn: async ({ listId, title }) => {
+      const response = await fetch(`/api/todo-lists/${listId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      if (!response.ok) throw new Error("Failed to update list");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todoLists"] });
+    },
+  });
+
+  const deleteListMutation = useMutation({
+    mutationFn: async (listId) => {
+      const response = await fetch(`/api/todo-lists/${listId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete list");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todoLists"] });
+    },
+  });
+
+  const addItemMutation = useMutation({
+    mutationFn: async ({ listId, title }) => {
+      const response = await fetch(`/api/todo-lists/${listId}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      if (!response.ok) throw new Error("Failed to add item");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todoLists"] });
     },
   });
 
@@ -122,55 +155,8 @@ export default function Dashboard() {
       if (!response.ok) throw new Error("Failed to update todo");
       return response.json();
     },
-    onMutate: async ({ id, completed }) => {
-      await queryClient.cancelQueries({ queryKey: ["todos", activeGroupId] });
-      const previousTodos = queryClient.getQueryData(["todos", activeGroupId]);
-
-      queryClient.setQueryData(["todos", activeGroupId], (old) => ({
-        ...old,
-        todos: old?.todos?.map((todo) =>
-          todo.id === id ? { ...todo, completed } : todo,
-        ),
-      }));
-
-      return { previousTodos };
-    },
-    onError: (err, variables, context) => {
-      queryClient.setQueryData(["todos", activeGroupId], context.previousTodos);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos"] });
-    },
-  });
-
-  const updateDriMutation = useMutation({
-    mutationFn: async ({ id, dri }) => {
-      const response = await fetch(`/api/todos/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dri }),
-      });
-      if (!response.ok) throw new Error("Failed to update DRI");
-      return response.json();
-    },
-    onMutate: async ({ id, dri }) => {
-      await queryClient.cancelQueries({ queryKey: ["todos", activeGroupId] });
-      const previousTodos = queryClient.getQueryData(["todos", activeGroupId]);
-
-      queryClient.setQueryData(["todos", activeGroupId], (old) => ({
-        ...old,
-        todos: old?.todos?.map((todo) =>
-          todo.id === id ? { ...todo, dri } : todo,
-        ),
-      }));
-
-      return { previousTodos };
-    },
-    onError: (err, variables, context) => {
-      queryClient.setQueryData(["todos", activeGroupId], context.previousTodos);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos"] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todoLists"] });
     },
   });
 
@@ -183,7 +169,7 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos"] });
+      queryClient.invalidateQueries({ queryKey: ["todoLists"] });
     },
   });
 
@@ -219,25 +205,30 @@ export default function Dashboard() {
   });
 
   // Handlers
-  const handleAddTodo = () => {
-    if (!newTodoTitle.trim() || !activeGroupId) return;
-    createTodoMutation.mutate({
-      groupId: activeGroupId,
-      title: newTodoTitle.trim(),
-      dueDate: newTodoDueDate || null,
-      assignedTo: [user.id],
-      dri: newTodoDri || user.id,
-    });
+  const handleCreateList = (title) => {
+    createListMutation.mutate(title);
   };
 
-  const handleUpdateDri = (todoId, driUserId) => {
-    updateDriMutation.mutate({ id: todoId, dri: driUserId });
+  const handleUpdateListTitle = (listId, title) => {
+    updateListTitleMutation.mutate({ listId, title });
   };
 
-  const handleDeleteTodo = (todoId) => {
-    if (confirm("Are you sure you want to delete this task?")) {
-      deleteTodoMutation.mutate(todoId);
+  const handleDeleteList = (listId) => {
+    if (confirm("Delete this list and all its items?")) {
+      deleteListMutation.mutate(listId);
     }
+  };
+
+  const handleAddItem = (listId, title) => {
+    addItemMutation.mutate({ listId, title });
+  };
+
+  const handleToggleItem = (itemId, completed) => {
+    toggleTodoMutation.mutate({ id: itemId, completed });
+  };
+
+  const handleDeleteItem = (itemId) => {
+    deleteTodoMutation.mutate(itemId);
   };
 
   const handleAddNote = () => {
@@ -323,23 +314,14 @@ export default function Dashboard() {
           {/* Main Content */}
           <div className="flex-1 p-6 overflow-y-auto">
             <>
-              <TodoList
-                todos={todos}
-                activeGroupId={activeGroupId}
-                groupName={activeGroupId === 'personal' ? "Personal Tasks" : groups.find((g) => g.id === activeGroupId)?.name}
-                showAddTodo={showAddTodo}
-                setShowAddTodo={setShowAddTodo}
-                newTodoTitle={newTodoTitle}
-                setNewTodoTitle={setNewTodoTitle}
-                newTodoDueDate={newTodoDueDate}
-                setNewTodoDueDate={setNewTodoDueDate}
-                newTodoDri={newTodoDri}
-                setNewTodoDri={setNewTodoDri}
-                handleAddTodo={handleAddTodo}
-                toggleTodoMutation={toggleTodoMutation}
-                handleDeleteTodo={handleDeleteTodo}
-                members={members}
-                onUpdateDri={handleUpdateDri}
+              <TodoBoard
+                lists={todoLists}
+                onCreateList={handleCreateList}
+                onUpdateListTitle={handleUpdateListTitle}
+                onDeleteList={handleDeleteList}
+                onToggleItem={handleToggleItem}
+                onDeleteItem={handleDeleteItem}
+                onAddItem={handleAddItem}
               />
 
               <NoteList

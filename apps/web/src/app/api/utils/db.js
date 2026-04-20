@@ -56,6 +56,17 @@ const ensureSchema = async () => {
   // Notes gained a separate title field; existing rows get NULL titles.
   await sql`ALTER TABLE app_notes ADD COLUMN IF NOT EXISTS title TEXT NULL`;
 
+  // Todo Lists (Google Keep-style multi-list)
+  await sql`CREATE TABLE IF NOT EXISTS app_todo_lists (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    group_id TEXT NULL REFERENCES app_groups(id) ON DELETE CASCADE,
+    created_by TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`;
+
+  await sql`ALTER TABLE app_todos ADD COLUMN IF NOT EXISTS list_id TEXT NULL REFERENCES app_todo_lists(id) ON DELETE CASCADE`;
+
   await sql`CREATE TABLE IF NOT EXISTS app_messages (
     id TEXT PRIMARY KEY,
     group_id TEXT NOT NULL REFERENCES app_groups(id) ON DELETE CASCADE,
@@ -77,11 +88,48 @@ const ensureSchema = async () => {
   await sql`CREATE INDEX IF NOT EXISTS idx_app_group_invitations_invited_email ON app_group_invitations(invited_email)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_app_group_invitations_status ON app_group_invitations(status)`;
 
+  // Auto-migrate orphan todos into a "General" list per user/group scope
+  try {
+    const orphanScopes = await sql`
+      SELECT DISTINCT created_by, group_id
+      FROM app_todos
+      WHERE list_id IS NULL
+    `;
+    for (const scope of orphanScopes) {
+      const existingList = await sql`
+        SELECT id FROM app_todo_lists
+        WHERE title = 'General'
+          AND created_by = ${scope.created_by}
+          AND ${scope.group_id ? sql`group_id = ${scope.group_id}` : sql`group_id IS NULL`}
+        LIMIT 1
+      `;
+      let listId;
+      if (existingList.length > 0) {
+        listId = existingList[0].id;
+      } else {
+        listId = generateId();
+        await sql`
+          INSERT INTO app_todo_lists (id, title, group_id, created_by)
+          VALUES (${listId}, 'General', ${scope.group_id}, ${scope.created_by})
+        `;
+      }
+      await sql`
+        UPDATE app_todos
+        SET list_id = ${listId}
+        WHERE list_id IS NULL
+          AND created_by = ${scope.created_by}
+          AND ${scope.group_id ? sql`group_id = ${scope.group_id}` : sql`group_id IS NULL`}
+      `;
+    }
+  } catch (migrationError) {
+    console.warn('Todo list migration warning:', migrationError.message);
+  }
+
   schemaReady = true;
 };
 
 const readDb = () => {
-  if (!fs.existsSync(DB_PATH)) return { users: [], groups: [], group_members: [], group_invitations: [], todos: [], notes: [], messages: [] };
+  if (!fs.existsSync(DB_PATH)) return { users: [], groups: [], group_members: [], group_invitations: [], todos: [], todo_lists: [], notes: [], messages: [] };
   const data = fs.readFileSync(DB_PATH, 'utf-8');
   return JSON.parse(data);
 };
@@ -104,6 +152,7 @@ const mapPgTodo = (r) => ({
   created_by: r.created_by,
   title: r.title,
   group_id: r.group_id,
+  list_id: r.list_id ?? null,
   due_date: r.due_date,
   assigned_to: r.assigned_to,
   dri: r.dri ?? null,
@@ -492,12 +541,13 @@ export const db = {
         await ensureSchema();
         const id = generateId();
         const [row] = await sql`
-          INSERT INTO app_todos (id, created_by, title, group_id, due_date, assigned_to, dri, completed)
+          INSERT INTO app_todos (id, created_by, title, group_id, list_id, due_date, assigned_to, dri, completed)
           VALUES (
             ${id},
             ${userId},
             ${data.title},
             ${data.groupId === 'personal' ? null : data.groupId},
+            ${data.listId || null},
             ${data.dueDate || null},
             ${JSON.stringify(data.assignedTo || [])}::jsonb,
             ${data.dri || null},
@@ -514,6 +564,7 @@ export const db = {
         created_by: userId,
         title: data.title,
         group_id: data.groupId === 'personal' ? null : data.groupId,
+        list_id: data.listId || null,
         due_date: data.dueDate,
         assigned_to: data.assignedTo,
         dri: data.dri || null,
@@ -595,6 +646,176 @@ export const db = {
       const membership = (store.group_members || []).find(m => m.group_id === todo.group_id && m.user_id === userId);
       return !!membership;
     }
+  },
+
+  todoLists: {
+    list: async (userId, groupId) => {
+      if (usePostgres) {
+        await ensureSchema();
+        const groupFilter = groupId === 'personal' ? null : groupId;
+
+        const lists = groupFilter
+          ? await sql`
+              SELECT * FROM app_todo_lists
+              WHERE group_id = ${groupFilter}
+              ORDER BY created_at ASC
+            `
+          : await sql`
+              SELECT * FROM app_todo_lists
+              WHERE group_id IS NULL AND created_by = ${userId}
+              ORDER BY created_at ASC
+            `;
+
+        const listIds = lists.map(l => l.id);
+        const items = listIds.length > 0
+          ? await sql`
+              SELECT * FROM app_todos
+              WHERE list_id = ANY(${listIds})
+              ORDER BY created_at ASC
+            `
+          : [];
+
+        return lists.map(list => ({
+          ...list,
+          items: items.filter(i => i.list_id === list.id).map(mapPgTodo),
+        }));
+      }
+
+      const store = readDb();
+      const todoLists = store.todo_lists || [];
+      const todos = store.todos || [];
+      const groupFilter = groupId === 'personal' ? null : groupId;
+
+      const filtered = groupFilter
+        ? todoLists.filter(l => l.group_id === groupFilter)
+        : todoLists.filter(l => !l.group_id && l.created_by === userId);
+
+      return filtered.map(list => ({
+        ...list,
+        items: todos.filter(t => t.list_id === list.id),
+      }));
+    },
+
+    create: async (userId, { title, groupId }) => {
+      if (usePostgres) {
+        await ensureSchema();
+        const id = generateId();
+        const [row] = await sql`
+          INSERT INTO app_todo_lists (id, title, group_id, created_by)
+          VALUES (${id}, ${title}, ${groupId === 'personal' ? null : groupId}, ${userId})
+          RETURNING *
+        `;
+        return { ...row, items: [] };
+      }
+
+      const store = readDb();
+      const newList = {
+        id: generateId(),
+        title,
+        group_id: groupId === 'personal' ? null : groupId,
+        created_by: userId,
+        created_at: new Date().toISOString(),
+      };
+      store.todo_lists = store.todo_lists || [];
+      store.todo_lists.push(newList);
+      writeDb(store);
+      return { ...newList, items: [] };
+    },
+
+    update: async (listId, data) => {
+      if (usePostgres) {
+        await ensureSchema();
+        const rows = await sql`
+          UPDATE app_todo_lists
+          SET title = COALESCE(${data.title ?? null}, title)
+          WHERE id = ${listId}
+          RETURNING *
+        `;
+        return rows[0] || null;
+      }
+
+      const store = readDb();
+      const listIndex = (store.todo_lists || []).findIndex(l => l.id === listId);
+      if (listIndex === -1) return null;
+      if (data.title !== undefined) store.todo_lists[listIndex].title = data.title;
+      writeDb(store);
+      return store.todo_lists[listIndex];
+    },
+
+    delete: async (listId) => {
+      if (usePostgres) {
+        await ensureSchema();
+        await sql`DELETE FROM app_todo_lists WHERE id = ${listId}`;
+        return true;
+      }
+
+      const store = readDb();
+      store.todo_lists = (store.todo_lists || []).filter(l => l.id !== listId);
+      store.todos = (store.todos || []).filter(t => t.list_id !== listId);
+      writeDb(store);
+      return true;
+    },
+
+    checkAccess: async (userId, listId) => {
+      if (usePostgres) {
+        await ensureSchema();
+        const rows = await sql`
+          SELECT l.id, l.created_by, l.group_id,
+                 EXISTS(
+                   SELECT 1 FROM app_group_members gm
+                   WHERE gm.group_id = l.group_id AND gm.user_id = ${userId}
+                 ) AS is_member
+          FROM app_todo_lists l
+          WHERE l.id = ${listId}
+          LIMIT 1
+        `;
+        const list = rows[0];
+        if (!list) return false;
+        if (!list.group_id) return list.created_by === userId;
+        return !!list.is_member;
+      }
+
+      const store = readDb();
+      const list = (store.todo_lists || []).find(l => l.id === listId);
+      if (!list) return false;
+      if (!list.group_id) return list.created_by === userId;
+      return !!(store.group_members || []).find(m => m.group_id === list.group_id && m.user_id === userId);
+    },
+
+    addItem: async (userId, listId, { title }) => {
+      // Look up the list to get its group_id
+      if (usePostgres) {
+        await ensureSchema();
+        const listRows = await sql`SELECT group_id FROM app_todo_lists WHERE id = ${listId} LIMIT 1`;
+        const listGroupId = listRows[0]?.group_id || null;
+        const todoId = generateId();
+        const [row] = await sql`
+          INSERT INTO app_todos (id, created_by, title, group_id, list_id, completed)
+          VALUES (${todoId}, ${userId}, ${title}, ${listGroupId}, ${listId}, false)
+          RETURNING *
+        `;
+        return mapPgTodo(row);
+      }
+
+      const store = readDb();
+      const list = (store.todo_lists || []).find(l => l.id === listId);
+      const newTodo = {
+        id: generateId(),
+        created_by: userId,
+        title,
+        group_id: list?.group_id || null,
+        list_id: listId,
+        due_date: null,
+        assigned_to: null,
+        dri: null,
+        completed: false,
+        created_at: new Date().toISOString(),
+      };
+      store.todos = store.todos || [];
+      store.todos.push(newTodo);
+      writeDb(store);
+      return newTodo;
+    },
   },
 
   notes: {
