@@ -42,6 +42,21 @@ export default function NotesPage() {
     },
   });
 
+  const editNoteMutation = useMutation({
+    mutationFn: async ({ noteId, title, body }) => {
+      const response = await fetch(`/api/notes/${noteId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body }),
+      });
+      if (!response.ok) throw new Error("Failed to update note");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+    },
+  });
+
   const deleteNoteMutation = useMutation({
     mutationFn: async (noteId) => {
       const response = await fetch(`/api/notes/${noteId}`, {
@@ -62,6 +77,10 @@ export default function NotesPage() {
       title: newNoteTitle.trim(),
       body: newNoteBody.trim(),
     });
+  };
+
+  const handleEditNote = (noteId, title, body) => {
+    editNoteMutation.mutate({ noteId, title, body });
   };
 
   const handleDeleteNote = (noteId) => {
@@ -108,6 +127,7 @@ export default function NotesPage() {
           setNewNoteBody={setNewNoteBody}
           handleAddNote={handleAddNote}
           handleDeleteNote={handleDeleteNote}
+          handleEditNote={handleEditNote}
         />
       </div>
     </div>

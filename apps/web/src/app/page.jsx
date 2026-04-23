@@ -191,6 +191,36 @@ export default function Dashboard() {
     },
   });
 
+  const editTodoMutation = useMutation({
+    mutationFn: async ({ todoId, title }) => {
+      const response = await fetch(`/api/todos/${todoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      if (!response.ok) throw new Error("Failed to update todo");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todoLists"] });
+    },
+  });
+
+  const editNoteMutation = useMutation({
+    mutationFn: async ({ noteId, title, body }) => {
+      const response = await fetch(`/api/notes/${noteId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body }),
+      });
+      if (!response.ok) throw new Error("Failed to update note");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+    },
+  });
+
   const deleteNoteMutation = useMutation({
     mutationFn: async (noteId) => {
       const response = await fetch(`/api/notes/${noteId}`, {
@@ -229,6 +259,14 @@ export default function Dashboard() {
 
   const handleDeleteItem = (itemId) => {
     deleteTodoMutation.mutate(itemId);
+  };
+
+  const handleEditItem = (todoId, title) => {
+    editTodoMutation.mutate({ todoId, title });
+  };
+
+  const handleEditNote = (noteId, title, body) => {
+    editNoteMutation.mutate({ noteId, title, body });
   };
 
   const handleAddNote = () => {
@@ -341,6 +379,7 @@ export default function Dashboard() {
                 onToggleItem={handleToggleItem}
                 onDeleteItem={handleDeleteItem}
                 onAddItem={handleAddItem}
+                onEditItem={handleEditItem}
               />
 
               {activeGroupId !== 'personal' && (
@@ -354,6 +393,7 @@ export default function Dashboard() {
                   setNewNoteBody={setNewNoteBody}
                   handleAddNote={handleAddNote}
                   handleDeleteNote={handleDeleteNote}
+                  handleEditNote={handleEditNote}
                 />
               )}
             </>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { FileText, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -11,8 +12,34 @@ export default function NoteList({
     setNewNoteBody,
     handleAddNote,
     handleDeleteNote,
+    handleEditNote,
 }) {
+    const [editingNoteId, setEditingNoteId] = useState(null);
+    const [editingTitle, setEditingTitle] = useState("");
+    const [editingBody, setEditingBody] = useState("");
     const isAddDisabled = !newNoteTitle.trim() || !newNoteBody.trim();
+
+    const startEditingNote = (note) => {
+        setEditingNoteId(note.id);
+        setEditingTitle(note.title || "");
+        setEditingBody(note.content || "");
+    };
+
+    const cancelEditingNote = () => {
+        setEditingNoteId(null);
+        setEditingTitle("");
+        setEditingBody("");
+    };
+
+    const submitEditNote = () => {
+        const trimmedTitle = editingTitle.trim();
+        const trimmedBody = editingBody.trim();
+        if (!trimmedTitle || !trimmedBody) return;
+        handleEditNote(editingNoteId, trimmedTitle, trimmedBody);
+        setEditingNoteId(null);
+        setEditingTitle("");
+        setEditingBody("");
+    };
 
     return (
         <div className="bg-white border border-[#F1F1F1] rounded-xl p-8 mt-6">
@@ -80,44 +107,72 @@ export default function NoteList({
                             key={note.id}
                             className="group break-inside-avoid mb-4 p-4 bg-white rounded-xl border border-[#E5E5E5] shadow-sm hover:shadow-md transition-shadow"
                         >
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                                <h4 className="text-[14px] font-semibold text-[#2B2B2B] leading-snug flex-1">
-                                    {note.title || "Untitled"}
-                                </h4>
-                                <button
-                                    onClick={() => handleDeleteNote(note.id)}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-red-50 rounded shrink-0"
-                                    title="Delete note"
-                                >
-                                    <Trash2 size={14} className="text-red-500" />
-                                </button>
-                            </div>
+                            {editingNoteId === note.id ? (
+                                <>
+                                    <input
+                                        type="text"
+                                        value={editingTitle}
+                                        onChange={(e) => setEditingTitle(e.target.value)}
+                                        autoFocus
+                                        className="w-full text-[14px] font-semibold text-[#2B2B2B] bg-transparent outline-none border-b border-[#2563FF] pb-1 mb-3"
+                                    />
+                                    <textarea
+                                        value={editingBody}
+                                        onChange={(e) => setEditingBody(e.target.value)}
+                                        className="w-full text-[13px] text-[#2B2B2B] bg-transparent outline-none resize-none h-24 whitespace-pre-wrap leading-relaxed"
+                                    />
+                                    <div className="flex items-center gap-3 mt-3">
+                                        <button
+                                            onClick={submitEditNote}
+                                            disabled={!editingTitle.trim() || !editingBody.trim()}
+                                            className="px-4 py-1.5 bg-[#2563FF] text-white text-[12px] font-semibold rounded-lg hover:bg-[#2E69DE] disabled:opacity-50"
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            onClick={cancelEditingNote}
+                                            className="text-[12px] text-[#A3A3A3]"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                        <h4
+                                            onClick={() => handleEditNote && startEditingNote(note)}
+                                            className={`text-[14px] font-semibold text-[#2B2B2B] leading-snug flex-1 ${handleEditNote ? "cursor-pointer hover:text-[#2563FF] transition-colors" : ""}`}
+                                        >
+                                            {note.title || "Untitled"}
+                                        </h4>
+                                        <button
+                                            onClick={() => handleDeleteNote(note.id)}
+                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-red-50 rounded shrink-0"
+                                            title="Delete note"
+                                        >
+                                            <Trash2 size={14} className="text-red-500" />
+                                        </button>
+                                    </div>
 
-                            {/* TODO(human): pick a long-body display strategy.
-                              *
-                              * The current <p> shows the entire body, which can make a
-                              * single long note dominate the masonry column.
-                              *
-                              * Options to consider on this <p> element's className:
-                              *   1. line-clamp-6   → cap at ~6 lines, ellipsis (Keep-ish)
-                              *   2. line-clamp-12  → roomier preview before clipping
-                              *   3. (no clamp)     → show everything (current behavior)
-                              *   4. max-h-48 overflow-hidden + a fade overlay (fancier)
-                              *
-                              * Pick whatever feels right and update the className below. */}
-                            <p className="text-[13px] text-[#2B2B2B] whitespace-pre-wrap leading-relaxed">
-                                {note.content}
-                            </p>
+                                    <p
+                                        onClick={() => handleEditNote && startEditingNote(note)}
+                                        className={`text-[13px] text-[#2B2B2B] whitespace-pre-wrap leading-relaxed ${handleEditNote ? "cursor-pointer" : ""}`}
+                                    >
+                                        {note.content}
+                                    </p>
 
-                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#F1F1F1]">
-                                <span className="text-[11px] text-[#9B9B9B] truncate">
-                                    {note.created_by_name || note.created_by_email}
-                                </span>
-                                <span className="text-[11px] text-[#C3C3C3]">•</span>
-                                <span className="text-[11px] text-[#9B9B9B]">
-                                    {format(new Date(note.created_at), "MMM d, yyyy")}
-                                </span>
-                            </div>
+                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#F1F1F1]">
+                                        <span className="text-[11px] text-[#9B9B9B] truncate">
+                                            {note.created_by_name || note.created_by_email}
+                                        </span>
+                                        <span className="text-[11px] text-[#C3C3C3]">•</span>
+                                        <span className="text-[11px] text-[#9B9B9B]">
+                                            {format(new Date(note.created_at), "MMM d, yyyy")}
+                                        </span>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ))}
                 </div>

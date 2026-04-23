@@ -10,6 +10,7 @@ export default function TodoBoard({
   onToggleItem,
   onDeleteItem,
   onAddItem,
+  onEditItem,
 }) {
   const [showNewListInput, setShowNewListInput] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
@@ -94,6 +95,7 @@ export default function TodoBoard({
               onToggleItem={onToggleItem}
               onDeleteItem={onDeleteItem}
               onAddItem={onAddItem}
+              onEditItem={onEditItem}
             />
           ))}
         </div>

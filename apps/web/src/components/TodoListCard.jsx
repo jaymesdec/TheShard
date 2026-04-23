@@ -8,10 +8,13 @@ export default function TodoListCard({
   onToggleItem,
   onDeleteItem,
   onAddItem,
+  onEditItem,
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(list.title);
   const [newItemTitle, setNewItemTitle] = useState("");
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [editingItemTitle, setEditingItemTitle] = useState("");
   const titleInputRef = useRef(null);
 
   const incompleteItems = list.items.filter((item) => !item.completed);
@@ -34,6 +37,15 @@ export default function TodoListCard({
     if (!trimmed) return;
     onAddItem(list.id, trimmed);
     setNewItemTitle("");
+  };
+
+  const handleItemEditSubmit = (itemId, originalTitle) => {
+    const trimmed = editingItemTitle.trim();
+    if (trimmed && trimmed !== originalTitle) {
+      onEditItem(itemId, trimmed);
+    }
+    setEditingItemId(null);
+    setEditingItemTitle("");
   };
 
   return (
@@ -95,9 +107,33 @@ export default function TodoListCard({
               onClick={() => onToggleItem(item.id, true)}
               className="w-4 h-4 rounded border border-[#D1D5DB] hover:border-[#2563FF] transition-colors shrink-0"
             />
-            <span className="flex-1 text-[13px] text-[#2B2B2B] leading-snug">
-              {item.title}
-            </span>
+            {editingItemId === item.id ? (
+              <input
+                type="text"
+                value={editingItemTitle}
+                onChange={(e) => setEditingItemTitle(e.target.value)}
+                onBlur={() => handleItemEditSubmit(item.id, item.title)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleItemEditSubmit(item.id, item.title);
+                  if (e.key === "Escape") {
+                    setEditingItemId(null);
+                    setEditingItemTitle("");
+                  }
+                }}
+                autoFocus
+                className="flex-1 text-[13px] text-[#2B2B2B] leading-snug bg-transparent outline-none border-b border-[#2563FF] pb-0.5"
+              />
+            ) : (
+              <span
+                onClick={() => {
+                  setEditingItemId(item.id);
+                  setEditingItemTitle(item.title);
+                }}
+                className="flex-1 text-[13px] text-[#2B2B2B] leading-snug cursor-pointer hover:text-[#2563FF] transition-colors"
+              >
+                {item.title}
+              </span>
+            )}
             <button
               onClick={() => onDeleteItem(item.id)}
               className="opacity-0 group-hover/item:opacity-100 transition-opacity p-0.5 hover:bg-red-50 rounded"
@@ -123,9 +159,33 @@ export default function TodoListCard({
                     <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
-                <span className="flex-1 text-[13px] text-[#2B2B2B] leading-snug line-through">
-                  {item.title}
-                </span>
+                {editingItemId === item.id ? (
+                  <input
+                    type="text"
+                    value={editingItemTitle}
+                    onChange={(e) => setEditingItemTitle(e.target.value)}
+                    onBlur={() => handleItemEditSubmit(item.id, item.title)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleItemEditSubmit(item.id, item.title);
+                      if (e.key === "Escape") {
+                        setEditingItemId(null);
+                        setEditingItemTitle("");
+                      }
+                    }}
+                    autoFocus
+                    className="flex-1 text-[13px] text-[#2B2B2B] leading-snug bg-transparent outline-none border-b border-[#2563FF] pb-0.5"
+                  />
+                ) : (
+                  <span
+                    onClick={() => {
+                      setEditingItemId(item.id);
+                      setEditingItemTitle(item.title);
+                    }}
+                    className="flex-1 text-[13px] text-[#2B2B2B] leading-snug line-through cursor-pointer hover:text-[#2563FF] transition-colors"
+                  >
+                    {item.title}
+                  </span>
+                )}
                 <button
                   onClick={() => onDeleteItem(item.id)}
                   className="opacity-0 group-hover/item:opacity-100 transition-opacity p-0.5 hover:bg-red-50 rounded"
