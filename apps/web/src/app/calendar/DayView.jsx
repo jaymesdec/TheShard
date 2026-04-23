@@ -26,6 +26,10 @@ export default function DayView({ currentDate, todos, groups }) {
     const [title, setTitle] = useState("");
     const [groupId, setGroupId] = useState("personal");
 
+    // Edit Form States
+    const [editTitle, setEditTitle] = useState("");
+    const [editDueDate, setEditDueDate] = useState("");
+
     // Create Mutation
     const createMutation = useMutation({
         mutationFn: async (newTodo) => {
@@ -35,6 +39,23 @@ export default function DayView({ currentDate, todos, groups }) {
                 body: JSON.stringify(newTodo),
             });
             if (!response.ok) throw new Error("Failed to create todo");
+            return response.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(["todos"]);
+            closeModals();
+        },
+    });
+
+    // Update Mutation
+    const updateMutation = useMutation({
+        mutationFn: async ({ id, title, dueDate }) => {
+            const response = await fetch(`/api/todos/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, dueDate }),
+            });
+            if (!response.ok) throw new Error("Failed to update todo");
             return response.json();
         },
         onSuccess: () => {
@@ -61,6 +82,8 @@ export default function DayView({ currentDate, todos, groups }) {
         setSelectedTask(null);
         setTitle("");
         setGroupId("personal");
+        setEditTitle("");
+        setEditDueDate("");
     };
 
     const handleSlotClick = (hour) => {
@@ -73,6 +96,8 @@ export default function DayView({ currentDate, todos, groups }) {
     const handleTaskClick = (e, todo) => {
         e.stopPropagation();
         setSelectedTask(todo);
+        setEditTitle(todo.title);
+        setEditDueDate(format(new Date(todo.due_date), "yyyy-MM-dd'T'HH:mm"));
     };
 
     const handleCreate = (e) => {
@@ -90,6 +115,16 @@ export default function DayView({ currentDate, todos, groups }) {
         if (confirm("Are you sure you want to delete this task?")) {
             deleteMutation.mutate(selectedTask.id);
         }
+    };
+
+    const handleUpdate = (e) => {
+        e.preventDefault();
+        if (!selectedTask || !editTitle) return;
+        updateMutation.mutate({
+            id: selectedTask.id,
+            title: editTitle,
+            dueDate: new Date(editDueDate).toISOString(),
+        });
     };
 
     // Filter tasks for this day
@@ -229,29 +264,58 @@ export default function DayView({ currentDate, todos, groups }) {
                 </div>
             )}
 
-            {/* VIEW/EDIT MODAL */}
+            {/* EDIT MODAL */}
             {selectedTask && (
                 <div className="absolute inset-0 bg-black/20 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm animate-in fade-in zoom-in duration-200">
-                        <div className="flex justify-start items-start justify-between mb-4">
-                            <div>
-                                <div className="text-sm text-gray-500 mb-1">{format(new Date(selectedTask.due_date), "PP p")}</div>
-                                <h3 className="font-semibold text-lg text-gray-900 leading-tight">{selectedTask.title}</h3>
-                                {selectedTask.group_name && <div className="text-xs text-blue-600 font-medium mt-1">{selectedTask.group_name}</div>}
-                            </div>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-semibold text-lg">Edit Event</h3>
                             <button onClick={closeModals} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
                         </div>
-
-                        <div className="flex justify-end gap-2 mt-8 pt-4 border-t border-gray-100">
-                            <button
-                                onClick={handleDelete}
-                                disabled={deleteMutation.isPending}
-                                className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors"
-                            >
-                                <Trash2 size={16} />
-                                {deleteMutation.isPending ? "Deleting..." : "Delete"}
-                            </button>
-                        </div>
+                        <form onSubmit={handleUpdate}>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
+                                <input
+                                    type="datetime-local"
+                                    value={editDueDate}
+                                    onChange={(e) => setEditDueDate(e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+                            {selectedTask.group_name && (
+                                <div className="text-xs text-blue-600 font-medium mb-4">{selectedTask.group_name}</div>
+                            )}
+                            <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
+                                <button
+                                    type="button"
+                                    onClick={handleDelete}
+                                    disabled={deleteMutation.isPending}
+                                    className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors"
+                                >
+                                    <Trash2 size={16} />
+                                    {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={updateMutation.isPending}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                    {updateMutation.isPending ? "Saving..." : "Save"}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

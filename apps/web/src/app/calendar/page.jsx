@@ -266,7 +266,7 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {view === 'week' && <WeekView currentDate={currentMonth} todos={todos} />}
+        {view === 'week' && <WeekView currentDate={currentMonth} todos={todos} groups={groups} />}
         {view === 'day' && <DayView currentDate={currentMonth} todos={todos} groups={groups} />}
 
         {/* Legend */}
