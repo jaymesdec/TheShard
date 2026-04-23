@@ -226,6 +226,23 @@ export const db = {
   },
 
   members: {
+    remove: async (groupId, userId) => {
+      if (usePostgres) {
+        await ensureSchema();
+        await sql`
+          DELETE FROM app_group_members
+          WHERE group_id = ${groupId} AND user_id = ${userId}
+        `;
+        return;
+      }
+
+      const store = readDb();
+      store.group_members = (store.group_members || []).filter(
+        m => !(m.group_id === groupId && m.user_id === userId)
+      );
+      writeDb(store);
+    },
+
     add: async (groupId, userId) => {
       if (usePostgres) {
         await ensureSchema();

@@ -240,6 +240,24 @@ export default function Dashboard() {
     });
   };
 
+  const leaveGroupMutation = useMutation({
+    mutationFn: async (groupId) => {
+      const response = await fetch(`/api/groups/${groupId}/leave`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to leave group");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      setSelectedGroupId('personal');
+    },
+  });
+
+  const handleLeaveGroup = (groupId) => {
+    leaveGroupMutation.mutate(groupId);
+  };
+
   const handleDeleteNote = (noteId) => {
     if (confirm("Are you sure you want to delete this note?")) {
       deleteNoteMutation.mutate(noteId);
@@ -269,6 +287,7 @@ export default function Dashboard() {
           selectedGroupId={selectedGroupId}
           setSelectedGroupId={setSelectedGroupId}
           activeGroupId={activeGroupId}
+          onLeaveGroup={handleLeaveGroup}
         />
 
         {/* Main Workspace */}

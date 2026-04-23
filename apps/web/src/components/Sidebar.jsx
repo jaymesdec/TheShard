@@ -7,6 +7,7 @@ import {
     User,
     ChevronDown,
     FileText,
+    X,
 } from "lucide-react";
 
 export default function Sidebar({
@@ -14,6 +15,7 @@ export default function Sidebar({
     selectedGroupId,
     setSelectedGroupId,
     activeGroupId,
+    onLeaveGroup,
 }) {
     const [collapsed, setCollapsed] = useState(false);
 
@@ -75,20 +77,38 @@ export default function Sidebar({
                     {!collapsed && (
                         <div className="ml-5 mt-2 space-y-2">
                             {groups.map((group) => (
-                                <button
+                                <div
                                     key={group.id}
-                                    onClick={() => setSelectedGroupId(group.id)}
-                                    className={`flex items-center gap-2 text-[12px] w-full text-left ${
+                                    className={`group/item flex items-center gap-2 text-[12px] w-full ${
                                         activeGroupId === group.id
                                             ? "text-[#2563FF] font-medium"
                                             : ""
                                     }`}
                                 >
-                                    <div className="w-6 h-6 rounded bg-[#F3F4F6] flex items-center justify-center text-[10px] font-semibold shrink-0">
-                                        {(group.name || '?').charAt(0).toUpperCase()}
-                                    </div>
-                                    <span className="truncate">{group.name}</span>
-                                </button>
+                                    <button
+                                        onClick={() => setSelectedGroupId(group.id)}
+                                        className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                                    >
+                                        <div className="w-6 h-6 rounded bg-[#F3F4F6] flex items-center justify-center text-[10px] font-semibold shrink-0">
+                                            {(group.name || '?').charAt(0).toUpperCase()}
+                                        </div>
+                                        <span className="truncate">{group.name}</span>
+                                    </button>
+                                    {onLeaveGroup && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (confirm("Leave this group? It will be removed from your view but remain active for other members.")) {
+                                                    onLeaveGroup(group.id);
+                                                }
+                                            }}
+                                            className="opacity-0 group-hover/item:opacity-100 p-1 hover:bg-red-50 rounded transition-opacity shrink-0"
+                                            title="Leave group"
+                                        >
+                                            <X size={12} className="text-red-500" />
+                                        </button>
+                                    )}
+                                </div>
                             ))}
                             {groups.length === 0 && (
                                 <div className="text-[12px] text-[#9B9B9B]">No groups yet</div>

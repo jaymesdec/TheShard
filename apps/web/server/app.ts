@@ -301,6 +301,7 @@ import * as todoListItemsRoute from '../src/app/api/todo-lists/[id]/items/route.
 import * as groupInvitationsRoute from '../src/app/api/groups/invitations/route.js';
 import * as groupInvitationAcceptRoute from '../src/app/api/groups/invitations/[inviteId]/accept/route.js';
 import * as groupIdInvitationsRoute from '../src/app/api/groups/[id]/invitations/route.js';
+import * as groupLeaveRoute from '../src/app/api/groups/[id]/leave/route.js';
 import * as usersProfileRoute from '../src/app/api/users/profile/route.js';
 import * as usersSearchRoute from '../src/app/api/users/search/route.js';
 
@@ -325,6 +326,7 @@ mountApiRoute('/groups', groupsRoute as RouteModule);
 mountApiRoute('/groups/invitations', groupInvitationsRoute as RouteModule);
 mountApiRoute('/groups/invitations/:inviteId/accept', groupInvitationAcceptRoute as RouteModule);
 mountApiRoute('/groups/:id/invitations', groupIdInvitationsRoute as RouteModule);
+mountApiRoute('/groups/:id/leave', groupLeaveRoute as RouteModule);
 mountApiRoute('/groups/:id/members', groupMembersRoute as RouteModule);
 mountApiRoute('/groups/:id/messages', groupMessagesRoute as RouteModule);
 mountApiRoute('/notes', notesRoute as RouteModule);

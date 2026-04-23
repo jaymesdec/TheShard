@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus, UserPlus, Search } from "lucide-react";
+import { ArrowLeft, Plus, UserPlus, Search, LogOut } from "lucide-react";
 import useUser from "@/utils/useUser";
 import UserAvatar from "@/components/UserAvatar";
 
@@ -143,6 +143,20 @@ export default function GroupsPage() {
     },
   });
 
+  const leaveGroupMutation = useMutation({
+    mutationFn: async (groupId) => {
+      const response = await fetch(`/api/groups/${groupId}/leave`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to leave group");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      setSelectedGroupId(null);
+    },
+  });
+
   const acceptInvitationMutation = useMutation({
     mutationFn: async (inviteId) => {
       const response = await fetch(`/api/groups/invitations/${inviteId}/accept`, {
@@ -219,6 +233,12 @@ export default function GroupsPage() {
       groupId: selectedGroupId,
       email: inviteEmail.trim().toLowerCase(),
     });
+  };
+
+  const handleLeaveGroup = (groupId) => {
+    if (confirm("Leave this group? It will be removed from your view but remain active for other members.")) {
+      leaveGroupMutation.mutate(groupId);
+    }
   };
 
   const handleAcceptInvite = (inviteId) => {
@@ -359,9 +379,23 @@ export default function GroupsPage() {
                         {new Date(group.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    {selectedGroupId === group.id && (
-                      <div className="w-2 h-2 bg-[#2563FF] rounded-full"></div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {selectedGroupId === group.id && (
+                        <div className="w-2 h-2 bg-[#2563FF] rounded-full"></div>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLeaveGroup(group.id);
+                        }}
+                        disabled={leaveGroupMutation.isPending}
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Leave group"
+                      >
+                        <LogOut size={14} />
+                        Leave
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
