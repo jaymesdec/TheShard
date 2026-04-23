@@ -6,6 +6,7 @@ import {
     Settings,
     User,
     ChevronDown,
+    FileText,
 } from "lucide-react";
 
 export default function Sidebar({
@@ -49,6 +50,16 @@ export default function Sidebar({
                         <Users size={20} className="shrink-0" />
                         {!collapsed && <span className="truncate">Personal Workspace</span>}
                     </button>
+                    <a
+                        href="/notes"
+                        title="Notes & Reminders"
+                        className={`flex items-center gap-3 w-full h-[36px] text-[13px] font-medium transition-colors rounded-lg ${
+                            collapsed ? "px-2 justify-center" : "pl-7 pr-2"
+                        } text-[#7A7A7A] hover:text-[#2563FF]`}
+                    >
+                        <FileText size={16} className="shrink-0" />
+                        {!collapsed && <span className="truncate">Notes & Reminders</span>}
+                    </a>
                 </div>
 
                 {/* Groups */}

@@ -324,17 +324,19 @@ export default function Dashboard() {
                 onAddItem={handleAddItem}
               />
 
-              <NoteList
-                notes={notes}
-                showAddNote={showAddNote}
-                setShowAddNote={setShowAddNote}
-                newNoteTitle={newNoteTitle}
-                setNewNoteTitle={setNewNoteTitle}
-                newNoteBody={newNoteBody}
-                setNewNoteBody={setNewNoteBody}
-                handleAddNote={handleAddNote}
-                handleDeleteNote={handleDeleteNote}
-              />
+              {activeGroupId !== 'personal' && (
+                <NoteList
+                  notes={notes}
+                  showAddNote={showAddNote}
+                  setShowAddNote={setShowAddNote}
+                  newNoteTitle={newNoteTitle}
+                  setNewNoteTitle={setNewNoteTitle}
+                  newNoteBody={newNoteBody}
+                  setNewNoteBody={setNewNoteBody}
+                  handleAddNote={handleAddNote}
+                  handleDeleteNote={handleDeleteNote}
+                />
+              )}
             </>
 
           </div>
