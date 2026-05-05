@@ -25,6 +25,7 @@ function DriBadge({ todo, members, onUpdateDri }) {
                         name={driMember?.name}
                         email={driMember?.email}
                         profileColor={driMember?.profile_color}
+                        image={driMember?.image}
                         size="xs"
                     />
                 ) : (
@@ -53,6 +54,7 @@ function DriBadge({ todo, members, onUpdateDri }) {
                                     name={member.name}
                                     email={member.email}
                                     profileColor={member.profile_color}
+                                    image={member.image}
                                     size="xs"
                                 />
                                 <span className="truncate">{member.name || member.email}</span>

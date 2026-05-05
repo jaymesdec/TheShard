@@ -113,7 +113,7 @@ if (process.env.AUTH_SECRET) {
             const oldSub = token.sub; // Google's sub before we resolve
             try {
               let { rows } = await pool.query(
-                'SELECT id, profile_color FROM auth_users WHERE email = $1 LIMIT 1',
+                'SELECT id, profile_color, has_custom_image FROM auth_users WHERE email = $1 LIMIT 1',
                 [token.email]
               );
               if (rows.length === 0) {
@@ -125,15 +125,23 @@ if (process.env.AUTH_SECRET) {
                 );
                 // Re-query in case of race (ON CONFLICT)
                 ({ rows } = await pool.query(
-                  'SELECT id, profile_color FROM auth_users WHERE email = $1 LIMIT 1',
+                  'SELECT id, profile_color, has_custom_image FROM auth_users WHERE email = $1 LIMIT 1',
                   [token.email]
                 ));
               } else if (token.name || token.picture) {
-                // Returning user — keep name & image in sync with Google profile
-                await pool.query(
-                  'UPDATE auth_users SET name = COALESCE($1, name), image = COALESCE($2, image) WHERE email = $3',
-                  [token.name || null, token.picture || null, token.email]
-                );
+                // Returning user — keep name in sync; only sync image if user hasn't uploaded a custom one
+                const hasCustomImage = rows[0]?.has_custom_image;
+                if (hasCustomImage) {
+                  await pool.query(
+                    'UPDATE auth_users SET name = COALESCE($1, name) WHERE email = $2',
+                    [token.name || null, token.email]
+                  );
+                } else {
+                  await pool.query(
+                    'UPDATE auth_users SET name = COALESCE($1, name), image = COALESCE($2, image) WHERE email = $3',
+                    [token.name || null, token.picture || null, token.email]
+                  );
+                }
               }
               if (rows.length > 0) {
                 const stableId = rows[0].id;

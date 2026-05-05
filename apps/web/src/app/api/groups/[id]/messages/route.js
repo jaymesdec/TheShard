@@ -34,10 +34,24 @@ export async function POST(request, { params }) {
     const groupId = params.id;
     const userId = session.user.id;
     const body = await request.json();
-    const { content } = body;
+    const { content, images } = body;
 
-    if (!content || !content.trim()) {
-      return Response.json({ error: "Content is required" }, { status: 400 });
+    const trimmedContent = typeof content === "string" ? content.trim() : "";
+    const imageList = Array.isArray(images) ? images : [];
+
+    // Validate: must have content or images
+    if (!trimmedContent && imageList.length === 0) {
+      return Response.json({ error: "Content or images required" }, { status: 400 });
+    }
+
+    // Validate images array
+    if (imageList.length > 10) {
+      return Response.json({ error: "Maximum 10 images per message" }, { status: 400 });
+    }
+    for (const img of imageList) {
+      if (!img || typeof img.url !== "string") {
+        return Response.json({ error: "Invalid image format" }, { status: 400 });
+      }
     }
 
     const memberGroups = await db.groups.findMemberGroups(userId);
@@ -45,7 +59,7 @@ export async function POST(request, { params }) {
       return Response.json({ error: "Not a member of this group" }, { status: 403 });
     }
 
-    const message = await db.messages.create(userId, groupId, content.trim());
+    const message = await db.messages.create(userId, groupId, trimmedContent, imageList);
     return Response.json({ message }, { status: 201 });
   } catch (error) {
     console.error("Error creating group message:", error);

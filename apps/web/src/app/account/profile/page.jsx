@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, LogOut } from "lucide-react";
+import { ArrowLeft, Check, LogOut, Camera, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import useUser from "@/utils/useUser";
 import useAuth from "@/utils/useAuth";
 import UserAvatar from "@/components/UserAvatar";
+import ImageUploader from "@/components/ImageUploader";
 
 const COLOR_PALETTE = [
   { hex: '#2563FF', label: 'Blue' },
@@ -64,6 +66,41 @@ export default function ProfilePage() {
     },
   });
 
+  const updateImageMutation = useMutation({
+    mutationFn: async (imageUrl) => {
+      const response = await fetch("/api/users/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: imageUrl }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Upload failed (${response.status})`);
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["userProfile"], (old) => ({
+        ...old,
+        image: data.image ?? null,
+        has_custom_image: data.has_custom_image ?? false,
+      }));
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+      toast.success(data.image ? "Profile photo updated" : "Profile photo removed");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update profile photo");
+    },
+  });
+
+  const handleImageUploaded = ({ url }) => {
+    updateImageMutation.mutate(url);
+  };
+
+  const handleRemoveImage = () => {
+    updateImageMutation.mutate(null);
+  };
+
   const handleSave = () => {
     if (selectedColor) {
       updateColorMutation.mutate(selectedColor);
@@ -117,6 +154,7 @@ export default function ProfilePage() {
               name={user.name}
               email={user.email}
               profileColor={currentColor}
+              image={profileData?.image}
               size="md"
             />
             <div>
@@ -125,6 +163,33 @@ export default function ProfilePage() {
               </div>
               <div className="text-sm text-gray-500">{user.email}</div>
             </div>
+          </div>
+
+          {/* Profile Photo Actions */}
+          <div className="flex items-center gap-3 mt-4">
+            <ImageUploader onImageUploaded={handleImageUploaded} disabled={updateImageMutation.isPending}>
+              {({ triggerFileInput, uploading }) => (
+                <button
+                  type="button"
+                  onClick={triggerFileInput}
+                  disabled={uploading || updateImageMutation.isPending}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#2563FF] border border-[#2563FF] rounded-lg hover:bg-blue-50 disabled:opacity-50 transition-colors"
+                >
+                  <Camera size={16} />
+                  {uploading ? "Uploading..." : "Upload photo"}
+                </button>
+              )}
+            </ImageUploader>
+            {profileData?.image && (
+              <button
+                onClick={handleRemoveImage}
+                disabled={updateImageMutation.isPending}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
+              >
+                <Trash2 size={16} />
+                Remove photo
+              </button>
+            )}
           </div>
         </div>
 

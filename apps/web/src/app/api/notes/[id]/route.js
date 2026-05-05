@@ -18,9 +18,22 @@ export async function PATCH(request, { params }) {
         : typeof requestPayload.content === "string"
         ? requestPayload.content.trim()
         : undefined;
+    const nextImages = Array.isArray(requestPayload.images) ? requestPayload.images : undefined;
 
-    if (nextTitle === undefined && nextBody === undefined) {
-      return Response.json({ error: "Provide a title or body to update" }, { status: 400 });
+    if (nextTitle === undefined && nextBody === undefined && nextImages === undefined) {
+      return Response.json({ error: "Provide a title, body, or images to update" }, { status: 400 });
+    }
+
+    // Validate images if provided
+    if (nextImages !== undefined) {
+      if (nextImages.length > 10) {
+        return Response.json({ error: "Maximum 10 images per note" }, { status: 400 });
+      }
+      for (const img of nextImages) {
+        if (!img || typeof img.url !== "string") {
+          return Response.json({ error: "Invalid image format" }, { status: 400 });
+        }
+      }
     }
 
     const hasAccess = await db.notes.checkAccess(userId, noteId);
@@ -31,6 +44,7 @@ export async function PATCH(request, { params }) {
     const note = await db.notes.update(noteId, {
       ...(nextTitle !== undefined ? { title: nextTitle } : {}),
       ...(nextBody !== undefined ? { body: nextBody } : {}),
+      ...(nextImages !== undefined ? { images: nextImages } : {}),
     });
     return Response.json({ note });
   } catch (error) {

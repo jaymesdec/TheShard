@@ -17,9 +17,27 @@ function getInitials(name, email, size) {
     .slice(0, 2);
 }
 
-export default function UserAvatar({ name, email, profileColor, size = 'sm' }) {
+import { useState } from "react";
+
+export default function UserAvatar({ name, email, profileColor, image, size = 'sm' }) {
   const dimensions = SIZES[size] || SIZES.sm;
   const initials = getInitials(name, email, size);
+  const [imageError, setImageError] = useState(false);
+
+  if (image && !imageError) {
+    return (
+      <img
+        src={image}
+        alt={name || email || ""}
+        className="rounded-full object-cover flex-shrink-0"
+        style={{
+          width: dimensions.container,
+          height: dimensions.container,
+        }}
+        onError={() => setImageError(true)}
+      />
+    );
+  }
 
   return (
     <div

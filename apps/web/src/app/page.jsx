@@ -207,11 +207,13 @@ export default function Dashboard() {
   });
 
   const editNoteMutation = useMutation({
-    mutationFn: async ({ noteId, title, body }) => {
+    mutationFn: async ({ noteId, title, body, images }) => {
+      const payload = { title, body };
+      if (images !== undefined) payload.images = images;
       const response = await fetch(`/api/notes/${noteId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body }),
+        body: JSON.stringify(payload),
       });
       if (!response.ok) throw new Error("Failed to update note");
       return response.json();
@@ -265,16 +267,18 @@ export default function Dashboard() {
     editTodoMutation.mutate({ todoId, title });
   };
 
-  const handleEditNote = (noteId, title, body) => {
-    editNoteMutation.mutate({ noteId, title, body });
+  const handleEditNote = (noteId, title, body, images) => {
+    editNoteMutation.mutate({ noteId, title, body, images });
   };
 
-  const handleAddNote = () => {
-    if (!newNoteTitle.trim() || !newNoteBody.trim() || !activeGroupId) return;
+  const handleAddNote = (images = []) => {
+    if (!newNoteTitle.trim() && !newNoteBody.trim() && images.length === 0) return;
+    if (!activeGroupId) return;
     createNoteMutation.mutate({
       groupId: activeGroupId,
       title: newNoteTitle.trim(),
       body: newNoteBody.trim(),
+      images,
     });
   };
 
@@ -351,6 +355,7 @@ export default function Dashboard() {
                 name={user.name}
                 email={user.email}
                 profileColor={userProfileColor}
+                image={profileData?.image}
                 size="sm"
               />
             </a>

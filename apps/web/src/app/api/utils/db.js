@@ -88,6 +88,16 @@ const ensureSchema = async () => {
   await sql`CREATE INDEX IF NOT EXISTS idx_app_group_invitations_invited_email ON app_group_invitations(invited_email)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_app_group_invitations_status ON app_group_invitations(status)`;
 
+  // Photo upload support
+  await sql`ALTER TABLE app_messages ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'`;
+  await sql`ALTER TABLE app_messages ALTER COLUMN content SET DEFAULT ''`;
+  await sql`ALTER TABLE app_notes ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'`;
+  try {
+    await sql`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS has_custom_image BOOLEAN DEFAULT false`;
+  } catch {
+    // auth_users may not exist yet
+  }
+
   // Auto-migrate orphan todos into a "General" list per user/group scope
   try {
     const orphanScopes = await sql`
@@ -322,7 +332,7 @@ export const db = {
         await ensureSchema();
         try {
           const rows = await sql`
-            SELECT id, name, email, image, profile_color
+            SELECT id, name, email, image, profile_color, has_custom_image
             FROM auth_users
             WHERE id::text = ${userId}
             LIMIT 1
@@ -351,6 +361,27 @@ export const db = {
       const userIndex = (store.users || []).findIndex(u => u.id === userId);
       if (userIndex === -1) return null;
       store.users[userIndex].profile_color = color;
+      writeDb(store);
+      return store.users[userIndex];
+    },
+
+    updateImage: async (userId, imageUrl) => {
+      if (usePostgres) {
+        await ensureSchema();
+        const hasCustomImage = imageUrl !== null;
+        const rows = await sql`
+          UPDATE auth_users
+          SET image = ${imageUrl}, has_custom_image = ${hasCustomImage}
+          WHERE id::text = ${userId}
+          RETURNING id, name, email, image, profile_color, has_custom_image
+        `;
+        return rows[0] || null;
+      }
+      const store = readDb();
+      const userIndex = (store.users || []).findIndex(u => u.id === userId);
+      if (userIndex === -1) return null;
+      store.users[userIndex].image = imageUrl;
+      store.users[userIndex].has_custom_image = imageUrl !== null;
       writeDb(store);
       return store.users[userIndex];
     },
@@ -870,17 +901,19 @@ export const db = {
     },
 
     create: async (userId, data) => {
+      const images = data.images || [];
       if (usePostgres) {
         await ensureSchema();
         const noteId = generateId();
         const rows = await sql`
-          INSERT INTO app_notes (id, created_by, title, content, group_id)
+          INSERT INTO app_notes (id, created_by, title, content, group_id, images)
           VALUES (
             ${noteId},
             ${userId},
             ${data.title ?? null},
             ${data.body ?? data.content ?? ''},
-            ${data.groupId === 'personal' ? null : data.groupId}
+            ${data.groupId === 'personal' ? null : data.groupId},
+            ${JSON.stringify(images)}::jsonb
           )
           RETURNING *
         `;
@@ -894,6 +927,7 @@ export const db = {
         title: data.title ?? null,
         content: data.body ?? data.content ?? '',
         group_id: data.groupId === 'personal' ? null : data.groupId,
+        images,
         created_at: new Date().toISOString()
       };
       store.notes = store.notes || [];
@@ -906,14 +940,25 @@ export const db = {
       if (usePostgres) {
         await ensureSchema();
         const nextBody = data.body ?? data.content ?? null;
-        const rows = await sql`
-          UPDATE app_notes
-          SET
-            title = COALESCE(${data.title ?? null}, title),
-            content = COALESCE(${nextBody}, content)
-          WHERE id = ${noteId}
-          RETURNING *
-        `;
+        const hasImages = data.images !== undefined;
+        const rows = hasImages
+          ? await sql`
+              UPDATE app_notes
+              SET
+                title = COALESCE(${data.title ?? null}, title),
+                content = COALESCE(${nextBody}, content),
+                images = ${JSON.stringify(data.images)}::jsonb
+              WHERE id = ${noteId}
+              RETURNING *
+            `
+          : await sql`
+              UPDATE app_notes
+              SET
+                title = COALESCE(${data.title ?? null}, title),
+                content = COALESCE(${nextBody}, content)
+              WHERE id = ${noteId}
+              RETURNING *
+            `;
         return rows[0] || null;
       }
 
@@ -926,6 +971,7 @@ export const db = {
         ...(data.title !== undefined ? { title: data.title } : {}),
         ...(data.body !== undefined ? { content: data.body } : {}),
         ...(data.content !== undefined ? { content: data.content } : {}),
+        ...(data.images !== undefined ? { images: data.images } : {}),
       };
       store.notes[noteIndex] = updatedNote;
       writeDb(store);
@@ -978,7 +1024,7 @@ export const db = {
         await ensureSchema();
         try {
           return await sql`
-            SELECT m.*, COALESCE(u.name, u.email, m.user_id) AS user_name, u.profile_color
+            SELECT m.*, COALESCE(u.name, u.email, m.user_id) AS user_name, u.profile_color, u.image AS user_image
             FROM app_messages m
             LEFT JOIN auth_users u ON u.id::text = m.user_id
             WHERE m.group_id = ${groupId}
@@ -1003,13 +1049,13 @@ export const db = {
       }).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     },
 
-    create: async (userId, groupId, content) => {
+    create: async (userId, groupId, content, images = []) => {
       if (usePostgres) {
         await ensureSchema();
         const id = generateId();
         const rows = await sql`
-          INSERT INTO app_messages (id, group_id, user_id, content)
-          VALUES (${id}, ${groupId}, ${userId}, ${content})
+          INSERT INTO app_messages (id, group_id, user_id, content, images)
+          VALUES (${id}, ${groupId}, ${userId}, ${content}, ${JSON.stringify(images)}::jsonb)
           RETURNING *
         `;
         return rows[0];
@@ -1021,6 +1067,7 @@ export const db = {
         group_id: groupId,
         user_id: userId,
         content,
+        images,
         created_at: new Date().toISOString()
       };
       store.messages = store.messages || [];

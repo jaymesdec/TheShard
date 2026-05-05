@@ -19,6 +19,7 @@ export default function MemberList({ members }) {
                                     name={member.name}
                                     email={member.email}
                                     profileColor={member.profile_color}
+                                    image={member.image}
                                     size="sm"
                                 />
                                 <div className="flex-1">

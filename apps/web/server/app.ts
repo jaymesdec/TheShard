@@ -98,7 +98,7 @@ if (process.env.AUTH_SECRET) {
             const oldSub = token.sub; // Google's sub before we resolve
             try {
               let rows = await sql(
-                'SELECT id, profile_color FROM auth_users WHERE email = $1 LIMIT 1',
+                'SELECT id, profile_color, has_custom_image FROM auth_users WHERE email = $1 LIMIT 1',
                 [token.email]
               );
               if (rows.length === 0) {
@@ -109,15 +109,23 @@ if (process.env.AUTH_SECRET) {
                   [newId, token.email, token.name || null, token.picture || null]
                 );
                 rows = await sql(
-                  'SELECT id, profile_color FROM auth_users WHERE email = $1 LIMIT 1',
+                  'SELECT id, profile_color, has_custom_image FROM auth_users WHERE email = $1 LIMIT 1',
                   [token.email]
                 );
               } else if (token.name || token.picture) {
-                // Returning user — keep name & image in sync with Google profile
-                await sql(
-                  'UPDATE auth_users SET name = COALESCE($1, name), image = COALESCE($2, image) WHERE email = $3',
-                  [token.name || null, token.picture || null, token.email]
-                );
+                // Returning user — keep name in sync; only sync image if user hasn't uploaded a custom one
+                const hasCustomImage = rows[0]?.has_custom_image;
+                if (hasCustomImage) {
+                  await sql(
+                    'UPDATE auth_users SET name = COALESCE($1, name) WHERE email = $2',
+                    [token.name || null, token.email]
+                  );
+                } else {
+                  await sql(
+                    'UPDATE auth_users SET name = COALESCE($1, name), image = COALESCE($2, image) WHERE email = $3',
+                    [token.name || null, token.picture || null, token.email]
+                  );
+                }
               }
               if (rows.length > 0) {
                 const stableId = rows[0].id;
@@ -304,6 +312,7 @@ import * as groupIdInvitationsRoute from '../src/app/api/groups/[id]/invitations
 import * as groupLeaveRoute from '../src/app/api/groups/[id]/leave/route.js';
 import * as usersProfileRoute from '../src/app/api/users/profile/route.js';
 import * as usersSearchRoute from '../src/app/api/users/search/route.js';
+import * as uploadRoute from '../src/app/api/upload/route.js';
 
 type RouteModule = Record<string, ((req: Request, ctx: any) => Response | Promise<Response>) | undefined>;
 
@@ -338,6 +347,7 @@ mountApiRoute('/todo-lists/:id/items', todoListItemsRoute as RouteModule);
 mountApiRoute('/todo-lists/:id', todoListByIdRoute as RouteModule);
 mountApiRoute('/users/profile', usersProfileRoute as RouteModule);
 mountApiRoute('/users/search', usersSearchRoute as RouteModule);
+mountApiRoute('/upload', uploadRoute as RouteModule);
 
 // -- React Router SSR handler ----------------------------------------------
 
