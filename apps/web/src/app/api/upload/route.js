@@ -1,8 +1,8 @@
-import { getToken } from "@auth/create";
+import { auth } from "@/auth";
 
 export async function POST(request) {
-  const token = await getToken(request);
-  if (!token) {
+  const session = await auth();
+  if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
