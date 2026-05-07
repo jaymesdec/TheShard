@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Trash2, Plus } from "lucide-react";
+import DriBadge from "@/components/DriBadge";
 
 export default function TodoListCard({
   list,
@@ -9,6 +10,9 @@ export default function TodoListCard({
   onDeleteItem,
   onAddItem,
   onEditItem,
+  members = [],
+  onUpdateDri,
+  isGroupContext = false,
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(list.title);
@@ -134,6 +138,9 @@ export default function TodoListCard({
                 {item.title}
               </span>
             )}
+            {isGroupContext && members.length > 0 && (
+              <DriBadge todo={item} members={members} onUpdateDri={onUpdateDri} />
+            )}
             <button
               onClick={() => onDeleteItem(item.id)}
               className="opacity-0 group-hover/item:opacity-100 transition-opacity p-0.5 hover:bg-red-50 rounded"
@@ -185,6 +192,9 @@ export default function TodoListCard({
                   >
                     {item.title}
                   </span>
+                )}
+                {isGroupContext && members.length > 0 && (
+                  <DriBadge todo={item} members={members} onUpdateDri={null} />
                 )}
                 <button
                   onClick={() => onDeleteItem(item.id)}

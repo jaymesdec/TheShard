@@ -11,6 +11,9 @@ export default function TodoBoard({
   onDeleteItem,
   onAddItem,
   onEditItem,
+  members = [],
+  onUpdateDri,
+  isGroupContext = false,
 }) {
   const [showNewListInput, setShowNewListInput] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
@@ -96,6 +99,9 @@ export default function TodoBoard({
               onDeleteItem={onDeleteItem}
               onAddItem={onAddItem}
               onEditItem={onEditItem}
+              members={members}
+              onUpdateDri={onUpdateDri}
+              isGroupContext={isGroupContext}
             />
           ))}
         </div>

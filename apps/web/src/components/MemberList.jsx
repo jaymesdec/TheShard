@@ -1,6 +1,6 @@
 import UserAvatar from "@/components/UserAvatar";
 
-export default function MemberList({ members }) {
+export default function MemberList({ members, driCounts = {} }) {
     return (
         <div className="w-[300px] h-full border-l border-[#EDEDED] flex flex-col">
             <div className="h-[64px] flex items-center px-6 border-b border-[#EDEDED] bg-white">
@@ -23,8 +23,15 @@ export default function MemberList({ members }) {
                                     size="sm"
                                 />
                                 <div className="flex-1">
-                                    <div className="text-[13px] font-medium">
-                                        {member.name || member.email || 'Unknown'}
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[13px] font-medium">
+                                            {member.name || member.email || 'Unknown'}
+                                        </span>
+                                        {driCounts[member.id] > 0 && (
+                                            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[#EEF2FF] text-[#4338CA]">
+                                                {driCounts[member.id]} {driCounts[member.id] === 1 ? 'task' : 'tasks'}
+                                            </span>
+                                        )}
                                     </div>
                                     {member.name && (
                                         <div className="text-[11px] text-[#B3B3B3]">

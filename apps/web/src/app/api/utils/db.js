@@ -830,16 +830,17 @@ export const db = {
       return !!(store.group_members || []).find(m => m.group_id === list.group_id && m.user_id === userId);
     },
 
-    addItem: async (userId, listId, { title }) => {
+    addItem: async (userId, listId, { title, dri }) => {
       // Look up the list to get its group_id
+      const itemDri = dri || null;
       if (usePostgres) {
         await ensureSchema();
         const listRows = await sql`SELECT group_id FROM app_todo_lists WHERE id = ${listId} LIMIT 1`;
         const listGroupId = listRows[0]?.group_id || null;
         const todoId = generateId();
         const [row] = await sql`
-          INSERT INTO app_todos (id, created_by, title, group_id, list_id, completed)
-          VALUES (${todoId}, ${userId}, ${title}, ${listGroupId}, ${listId}, false)
+          INSERT INTO app_todos (id, created_by, title, group_id, list_id, dri, completed)
+          VALUES (${todoId}, ${userId}, ${title}, ${listGroupId}, ${listId}, ${itemDri}, false)
           RETURNING *
         `;
         return mapPgTodo(row);
@@ -855,7 +856,7 @@ export const db = {
         list_id: listId,
         due_date: null,
         assigned_to: null,
-        dri: null,
+        dri: itemDri,
         completed: false,
         created_at: new Date().toISOString(),
       };

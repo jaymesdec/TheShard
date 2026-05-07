@@ -131,11 +131,13 @@ export default function Dashboard() {
   });
 
   const addItemMutation = useMutation({
-    mutationFn: async ({ listId, title }) => {
+    mutationFn: async ({ listId, title, dri }) => {
+      const payload = { title };
+      if (dri) payload.dri = dri;
       const response = await fetch(`/api/todo-lists/${listId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify(payload),
       });
       if (!response.ok) throw new Error("Failed to add item");
       return response.json();
@@ -206,6 +208,21 @@ export default function Dashboard() {
     },
   });
 
+  const updateDriMutation = useMutation({
+    mutationFn: async ({ todoId, memberId }) => {
+      const response = await fetch(`/api/todos/${todoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dri: memberId }),
+      });
+      if (!response.ok) throw new Error("Failed to update DRI");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todoLists"] });
+    },
+  });
+
   const editNoteMutation = useMutation({
     mutationFn: async ({ noteId, title, body, images }) => {
       const payload = { title, body };
@@ -251,8 +268,14 @@ export default function Dashboard() {
     }
   };
 
+  const isGroupContext = activeGroupId !== 'personal';
+
   const handleAddItem = (listId, title) => {
-    addItemMutation.mutate({ listId, title });
+    addItemMutation.mutate({ listId, title, dri: isGroupContext ? user.id : undefined });
+  };
+
+  const handleUpdateDri = (todoId, memberId) => {
+    updateDriMutation.mutate({ todoId, memberId });
   };
 
   const handleToggleItem = (itemId, completed) => {
@@ -385,6 +408,9 @@ export default function Dashboard() {
                 onDeleteItem={handleDeleteItem}
                 onAddItem={handleAddItem}
                 onEditItem={handleEditItem}
+                members={isGroupContext ? members : []}
+                onUpdateDri={isGroupContext ? handleUpdateDri : null}
+                isGroupContext={isGroupContext}
               />
 
               {activeGroupId !== 'personal' && (
@@ -406,7 +432,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <MemberList members={members} />
+        <MemberList
+          members={members}
+          driCounts={isGroupContext
+            ? todoLists.flatMap(l => l.items || []).filter(i => !i.completed && i.dri).reduce((acc, item) => {
+                acc[item.dri] = (acc[item.dri] || 0) + 1;
+                return acc;
+              }, {})
+            : {}
+          }
+        />
       </div>
     </div>
   );
