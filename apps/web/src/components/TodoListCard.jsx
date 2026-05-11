@@ -53,9 +53,9 @@ export default function TodoListCard({
   };
 
   return (
-    <div className="group/card break-inside-avoid mb-4 bg-white rounded-xl border border-[#E5E5E5] shadow-sm hover:shadow-md transition-shadow">
+    <div className="group/card break-inside-avoid mb-5 bg-white rounded-xl border border-[#E5E5E5] shadow-sm hover:shadow-md transition-shadow">
       {/* Header */}
-      <div className="flex items-start justify-between p-4 pb-2">
+      <div className="flex items-start justify-between p-5 pb-3">
         {isEditingTitle ? (
           <input
             ref={titleInputRef}
@@ -93,7 +93,7 @@ export default function TodoListCard({
 
       {/* Progress */}
       {totalItems > 0 && (
-        <div className="px-4 pb-2">
+        <div className="px-5 pb-3">
           <span className="text-[11px] text-[#9B9B9B]">
             {completedCount}/{totalItems} done
           </span>
@@ -101,11 +101,11 @@ export default function TodoListCard({
       )}
 
       {/* Items */}
-      <div className="px-4 pb-2">
+      <div className="px-5 pb-3">
         {incompleteItems.map((item) => (
           <div
             key={item.id}
-            className="flex items-center gap-2 py-1.5 group/item"
+            className="flex items-center gap-2 py-2.5 group/item"
           >
             <button
               onClick={() => onToggleItem(item.id, true)}
@@ -152,7 +152,7 @@ export default function TodoListCard({
 
         {/* Completed items */}
         {completedItems.length > 0 && (
-          <div className="mt-2 pt-2 border-t border-[#F1F1F1]">
+          <div className="mt-3 pt-3 border-t border-[#F1F1F1]">
             {completedItems.map((item) => (
               <div
                 key={item.id}
@@ -209,7 +209,7 @@ export default function TodoListCard({
       </div>
 
       {/* Add Item */}
-      <div className="px-4 pb-3 pt-1">
+      <div className="px-5 pb-4 pt-2">
         <div className="flex items-center gap-2">
           <Plus size={14} className="text-[#9B9B9B] shrink-0" />
           <input
