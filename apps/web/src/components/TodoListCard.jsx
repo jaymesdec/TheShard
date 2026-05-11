@@ -53,7 +53,7 @@ export default function TodoListCard({
   };
 
   return (
-    <div className="group/card break-inside-avoid mb-5 bg-white rounded-xl border border-[#E5E5E5] shadow-sm hover:shadow-md transition-shadow">
+    <div className="group/card break-inside-avoid mb-5 bg-white rounded-xl border border-[#E5E5E5] shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       {/* Header */}
       <div className="flex items-start justify-between p-5 pb-3">
         {isEditingTitle ? (
@@ -71,12 +71,12 @@ export default function TodoListCard({
               }
             }}
             autoFocus
-            className="flex-1 text-[14px] font-semibold text-[#2B2B2B] bg-transparent outline-none border-b border-[#2563FF] pb-0.5"
+            className="flex-1 min-w-0 text-[14px] font-semibold text-[#2B2B2B] bg-transparent outline-none border-b border-[#2563FF] pb-0.5"
           />
         ) : (
           <h4
             onClick={() => setIsEditingTitle(true)}
-            className="flex-1 text-[14px] font-semibold text-[#2B2B2B] cursor-pointer hover:text-[#2563FF] transition-colors"
+            className="flex-1 min-w-0 truncate text-[14px] font-semibold text-[#2B2B2B] cursor-pointer hover:text-[#2563FF] transition-colors"
           >
             {list.title}
           </h4>
@@ -105,7 +105,7 @@ export default function TodoListCard({
         {incompleteItems.map((item) => (
           <div
             key={item.id}
-            className="flex items-center gap-2 py-2.5 group/item"
+            className="flex items-center gap-2 py-2.5 min-w-0 group/item"
           >
             <button
               onClick={() => onToggleItem(item.id, true)}
@@ -125,7 +125,7 @@ export default function TodoListCard({
                   }
                 }}
                 autoFocus
-                className="flex-1 text-[13px] text-[#2B2B2B] leading-snug bg-transparent outline-none border-b border-[#2563FF] pb-0.5"
+                className="flex-1 min-w-0 text-[13px] text-[#2B2B2B] leading-snug bg-transparent outline-none border-b border-[#2563FF] pb-0.5"
               />
             ) : (
               <span
@@ -133,13 +133,15 @@ export default function TodoListCard({
                   setEditingItemId(item.id);
                   setEditingItemTitle(item.title);
                 }}
-                className="flex-1 text-[13px] text-[#2B2B2B] leading-snug cursor-pointer hover:text-[#2563FF] transition-colors"
+                className="flex-1 min-w-0 truncate text-[13px] text-[#2B2B2B] leading-snug cursor-pointer hover:text-[#2563FF] transition-colors"
               >
                 {item.title}
               </span>
             )}
             {isGroupContext && members.length > 0 && (
-              <DriBadge todo={item} members={members} onUpdateDri={onUpdateDri} />
+              <div className="shrink-0">
+                <DriBadge todo={item} members={members} onUpdateDri={onUpdateDri} />
+              </div>
             )}
             <button
               onClick={() => onDeleteItem(item.id)}
@@ -156,7 +158,7 @@ export default function TodoListCard({
             {completedItems.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-2 py-1.5 opacity-50 group/item"
+                className="flex items-center gap-2 py-1.5 opacity-50 min-w-0 group/item"
               >
                 <button
                   onClick={() => onToggleItem(item.id, false)}
@@ -180,7 +182,7 @@ export default function TodoListCard({
                       }
                     }}
                     autoFocus
-                    className="flex-1 text-[13px] text-[#2B2B2B] leading-snug bg-transparent outline-none border-b border-[#2563FF] pb-0.5"
+                    className="flex-1 min-w-0 text-[13px] text-[#2B2B2B] leading-snug bg-transparent outline-none border-b border-[#2563FF] pb-0.5"
                   />
                 ) : (
                   <span
@@ -188,13 +190,15 @@ export default function TodoListCard({
                       setEditingItemId(item.id);
                       setEditingItemTitle(item.title);
                     }}
-                    className="flex-1 text-[13px] text-[#2B2B2B] leading-snug line-through cursor-pointer hover:text-[#2563FF] transition-colors"
+                    className="flex-1 min-w-0 truncate text-[13px] text-[#2B2B2B] leading-snug line-through cursor-pointer hover:text-[#2563FF] transition-colors"
                   >
                     {item.title}
                   </span>
                 )}
                 {isGroupContext && members.length > 0 && (
-                  <DriBadge todo={item} members={members} onUpdateDri={null} />
+                  <div className="shrink-0">
+                    <DriBadge todo={item} members={members} onUpdateDri={null} />
+                  </div>
                 )}
                 <button
                   onClick={() => onDeleteItem(item.id)}
