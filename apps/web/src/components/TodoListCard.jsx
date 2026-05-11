@@ -76,7 +76,7 @@ export default function TodoListCard({
         ) : (
           <h4
             onClick={() => setIsEditingTitle(true)}
-            className="flex-1 min-w-0 truncate text-[14px] font-semibold text-[#2B2B2B] cursor-pointer hover:text-[#2563FF] transition-colors"
+            className="flex-1 min-w-0 text-[14px] font-semibold text-[#2B2B2B] cursor-pointer hover:text-[#2563FF] transition-colors"
           >
             {list.title}
           </h4>
@@ -133,7 +133,7 @@ export default function TodoListCard({
                   setEditingItemId(item.id);
                   setEditingItemTitle(item.title);
                 }}
-                className="flex-1 min-w-0 truncate text-[13px] text-[#2B2B2B] leading-snug cursor-pointer hover:text-[#2563FF] transition-colors"
+                className="flex-1 min-w-0 text-[13px] text-[#2B2B2B] leading-snug cursor-pointer hover:text-[#2563FF] transition-colors"
               >
                 {item.title}
               </span>
@@ -190,7 +190,7 @@ export default function TodoListCard({
                       setEditingItemId(item.id);
                       setEditingItemTitle(item.title);
                     }}
-                    className="flex-1 min-w-0 truncate text-[13px] text-[#2B2B2B] leading-snug line-through cursor-pointer hover:text-[#2563FF] transition-colors"
+                    className="flex-1 min-w-0 text-[13px] text-[#2B2B2B] leading-snug line-through cursor-pointer hover:text-[#2563FF] transition-colors"
                   >
                     {item.title}
                   </span>
