@@ -88,7 +88,7 @@ export default function TodoBoard({
           No to-do lists yet. Create one to get started!
         </div>
       ) : (
-        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 [column-fill:_balance]">
+        <div className={`columns-1 sm:columns-2 ${isGroupContext ? 'lg:columns-3' : 'lg:columns-3 xl:columns-4'} gap-5 [column-fill:_balance]`}>
           {lists.map((list) => (
             <TodoListCard
               key={list.id}
