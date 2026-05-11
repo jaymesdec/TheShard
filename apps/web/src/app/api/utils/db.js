@@ -894,11 +894,12 @@ export const db = {
       }
 
       const store = readDb();
+      const sortDesc = (arr) => arr.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       if (groupId === 'personal') {
-        return (store.notes || []).filter(n => !n.group_id && n.created_by === userId);
+        return sortDesc((store.notes || []).filter(n => !n.group_id && n.created_by === userId));
       }
       if (groupId) {
-        return (store.notes || []).filter(n => n.group_id === groupId);
+        return sortDesc((store.notes || []).filter(n => n.group_id === groupId));
       }
       return [];
     },
