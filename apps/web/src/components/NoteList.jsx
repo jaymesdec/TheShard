@@ -169,11 +169,11 @@ export default function NoteList({
                     No notes yet. Add one to get started!
                 </div>
             ) : (
-                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 [column-fill:_balance]">
+                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5 [column-fill:_balance]">
                     {notes.map((note) => (
                         <div
                             key={note.id}
-                            className="group break-inside-avoid mb-4 p-4 bg-white rounded-xl border border-[#E5E5E5] shadow-sm hover:shadow-md transition-shadow"
+                            className="group break-inside-avoid mb-5 p-5 bg-white rounded-xl border border-[#E5E5E5] shadow-sm hover:shadow-md transition-shadow"
                         >
                             {editingNoteId === note.id ? (
                                 <>
@@ -243,7 +243,7 @@ export default function NoteList({
                                 </>
                             ) : (
                                 <>
-                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                    <div className="flex items-start justify-between gap-2 mb-3">
                                         <h4
                                             onClick={() => handleEditNote && startEditingNote(note)}
                                             className={`text-[14px] font-semibold text-[#2B2B2B] leading-snug flex-1 ${handleEditNote ? "cursor-pointer hover:text-[#2563FF] transition-colors" : ""}`}
@@ -270,7 +270,7 @@ export default function NoteList({
 
                                     {/* Note images */}
                                     {note.images?.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 mt-3">
+                                        <div className="flex flex-wrap gap-2 mt-4">
                                             {note.images.map((img, idx) => (
                                                 <img
                                                     key={idx}
@@ -283,7 +283,7 @@ export default function NoteList({
                                         </div>
                                     )}
 
-                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#F1F1F1]">
+                                    <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[#F1F1F1]">
                                         <span className="text-[11px] text-[#9B9B9B] truncate">
                                             {note.created_by_name || note.created_by_email}
                                         </span>
