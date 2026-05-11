@@ -706,12 +706,12 @@ export const db = {
           ? await sql`
               SELECT * FROM app_todo_lists
               WHERE group_id = ${groupFilter}
-              ORDER BY created_at ASC
+              ORDER BY created_at DESC
             `
           : await sql`
               SELECT * FROM app_todo_lists
               WHERE group_id IS NULL AND created_by = ${userId}
-              ORDER BY created_at ASC
+              ORDER BY created_at DESC
             `;
 
         const listIds = lists.map(l => l.id);
@@ -737,6 +737,8 @@ export const db = {
       const filtered = groupFilter
         ? todoLists.filter(l => l.group_id === groupFilter)
         : todoLists.filter(l => !l.group_id && l.created_by === userId);
+
+      filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
       return filtered.map(list => ({
         ...list,
