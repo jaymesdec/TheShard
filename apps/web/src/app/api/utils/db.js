@@ -878,7 +878,7 @@ export const db = {
           return await sql`
             SELECT * FROM app_notes
             WHERE group_id IS NULL AND created_by = ${userId}
-            ORDER BY created_at DESC
+            ORDER BY created_at ASC
           `;
         }
 
@@ -886,7 +886,7 @@ export const db = {
           return await sql`
             SELECT * FROM app_notes
             WHERE group_id = ${groupId}
-            ORDER BY created_at DESC
+            ORDER BY created_at ASC
           `;
         }
 
@@ -894,12 +894,12 @@ export const db = {
       }
 
       const store = readDb();
-      const sortDesc = (arr) => arr.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const sortAsc = (arr) => arr.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       if (groupId === 'personal') {
-        return sortDesc((store.notes || []).filter(n => !n.group_id && n.created_by === userId));
+        return sortAsc((store.notes || []).filter(n => !n.group_id && n.created_by === userId));
       }
       if (groupId) {
-        return sortDesc((store.notes || []).filter(n => n.group_id === groupId));
+        return sortAsc((store.notes || []).filter(n => n.group_id === groupId));
       }
       return [];
     },
