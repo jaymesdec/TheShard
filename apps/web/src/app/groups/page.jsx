@@ -1,11 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus, UserPlus, Search, LogOut, ImagePlus, X } from "lucide-react";
-import { toast } from "sonner";
+import { ArrowLeft, Plus, UserPlus, Search, LogOut } from "lucide-react";
 import useUser from "@/utils/useUser";
 import UserAvatar from "@/components/UserAvatar";
-import ImageUploader from "@/components/ImageUploader";
-import Lightbox from "@/components/Lightbox";
 
 export default function GroupsPage() {
   const { data: user, loading: userLoading } = useUser();
@@ -18,9 +15,6 @@ export default function GroupsPage() {
   const [inviteEmail, setInviteEmail] = useState("");
 
   const [isSearching, setIsSearching] = useState(false);
-  const [message, setMessage] = useState("");
-  const [pendingImages, setPendingImages] = useState([]);
-  const [lightboxImage, setLightboxImage] = useState(null);
 
   // Fetch groups
   const { data: groupsData } = useQuery({
@@ -51,20 +45,6 @@ export default function GroupsPage() {
   });
 
   const members = membersData?.members || [];
-
-  // Fetch messages for selected group
-  const { data: messagesData } = useQuery({
-    queryKey: ["messages", selectedGroupId],
-    queryFn: async () => {
-      const response = await fetch(`/api/groups/${selectedGroupId}/messages`);
-      if (!response.ok) throw new Error("Failed to fetch messages");
-      return response.json();
-    },
-    enabled: !!selectedGroupId,
-    refetchInterval: 2000, // Poll every 2 seconds
-  });
-
-  const messages = messagesData?.messages || [];
 
   const { data: invitationsData } = useQuery({
     queryKey: ["groupInvitations"],
@@ -180,42 +160,6 @@ export default function GroupsPage() {
     },
   });
 
-  // Send message mutation
-  const sendMessageMutation = useMutation({
-    mutationFn: async ({ content, images }) => {
-      const response = await fetch(`/api/groups/${selectedGroupId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, images, userId: user.id }),
-      });
-      if (!response.ok) throw new Error("Failed to send message");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["messages"] });
-      setMessage("");
-      setPendingImages([]);
-    },
-  });
-
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (!message.trim() && pendingImages.length === 0) return;
-    sendMessageMutation.mutate({ content: message, images: pendingImages });
-  };
-
-  const handleImageUploaded = ({ url }) => {
-    if (pendingImages.length >= 10) {
-      toast.error("Maximum 10 images per message");
-      return;
-    }
-    setPendingImages((prev) => [...prev, { url }]);
-  };
-
-  const removePendingImage = (index) => {
-    setPendingImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const handleCreateGroup = () => {
     if (!newGroupName.trim()) return;
     createGroupMutation.mutate(newGroupName.trim());
@@ -261,11 +205,6 @@ export default function GroupsPage() {
 
   const handleAcceptInvite = (inviteId) => {
     acceptInvitationMutation.mutate(inviteId);
-  };
-
-  // Format info
-  const formatTime = (isoString) => {
-    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   if (userLoading) {
@@ -570,104 +509,6 @@ export default function GroupsPage() {
           </div>
         )}
 
-        {/* Chat Section */}
-        {selectedGroupId && (
-          <div className="bg-white rounded-2xl p-6 shadow-lg mt-6 h-[500px] flex flex-col">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">Group Chat</h2>
-
-            <div className="flex-1 overflow-y-auto mb-4 space-y-3 p-2 bg-gray-50 rounded-xl">
-              {messages.length === 0 ? (
-                <div className="text-center text-gray-400 mt-20">No messages yet. Say hello!</div>
-              ) : (
-                messages.map(msg => (
-                  <div key={msg.id} className={`flex flex-col ${msg.user_id === user.id ? 'items-end' : 'items-start'}`}>
-                    <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${msg.user_id === user.id
-                      ? 'bg-[#2563FF] text-white rounded-tr-none'
-                      : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none'
-                      } shadow-sm`}>
-                      {msg.user_id !== user.id && (
-                        <div className="text-xs font-bold mb-1 opacity-70">{msg.user_name}</div>
-                      )}
-                      {msg.content && <div className="text-sm">{msg.content}</div>}
-                      {msg.images?.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {msg.images.map((img, idx) => (
-                            <img
-                              key={idx}
-                              src={img.url}
-                              alt=""
-                              className="w-[120px] h-[90px] object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                              onClick={() => setLightboxImage(img.url)}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-1 px-1">{formatTime(msg.created_at)}</div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Pending image previews */}
-            {pendingImages.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2 px-1">
-                {pendingImages.map((img, idx) => (
-                  <div key={idx} className="relative group">
-                    <img
-                      src={img.url}
-                      alt=""
-                      className="w-[60px] h-[60px] object-cover rounded-lg border border-gray-200"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removePendingImage(idx)}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
-              <ImageUploader onImageUploaded={handleImageUploaded} disabled={sendMessageMutation.isPending}>
-                {({ triggerFileInput, uploading }) => (
-                  <button
-                    type="button"
-                    onClick={triggerFileInput}
-                    disabled={uploading || sendMessageMutation.isPending}
-                    className="p-3 text-gray-400 hover:text-[#2563FF] disabled:opacity-50 transition-colors"
-                    title="Attach image"
-                  >
-                    <ImagePlus size={20} />
-                  </button>
-                )}
-              </ImageUploader>
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl outline-none focus:border-[#2563FF] focus:ring-1 focus:ring-[#2563FF]"
-              />
-              <button
-                type="submit"
-                disabled={(!message.trim() && pendingImages.length === 0) || sendMessageMutation.isPending}
-                className="bg-[#2563FF] text-white px-6 py-3 rounded-xl font-medium hover:bg-[#2E69DE] disabled:opacity-50 transition-colors"
-              >
-                Send
-              </button>
-            </form>
-          </div>
-        )}
-
-        <Lightbox
-          imageUrl={lightboxImage}
-          isOpen={!!lightboxImage}
-          onClose={() => setLightboxImage(null)}
-        />
       </div>
     </div>
   );

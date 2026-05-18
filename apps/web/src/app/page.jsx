@@ -7,6 +7,7 @@ import MemberList from "@/components/MemberList";
 import NoteList from "@/components/NoteList";
 import TodoBoard from "@/components/TodoBoard";
 import UserAvatar from "@/components/UserAvatar";
+import ChatPanel from "@/components/ChatPanel";
 
 export default function Dashboard() {
   const { data: user, loading: userLoading } = useUser();
@@ -421,16 +422,22 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <MemberList
-          members={members}
-          driCounts={isGroupContext
-            ? todoLists.flatMap(l => l.items || []).filter(i => !i.completed && i.dri).reduce((acc, item) => {
-                acc[item.dri] = (acc[item.dri] || 0) + 1;
-                return acc;
-              }, {})
-            : {}
-          }
-        />
+        <div className="w-[300px] h-full border-l border-[#EDEDED] flex flex-col bg-white">
+          <MemberList
+            members={members}
+            driCounts={isGroupContext
+              ? todoLists.flatMap(l => l.items || []).filter(i => !i.completed && i.dri).reduce((acc, item) => {
+                  acc[item.dri] = (acc[item.dri] || 0) + 1;
+                  return acc;
+                }, {})
+              : {}
+            }
+            compact={isGroupContext}
+          />
+          {isGroupContext && (
+            <ChatPanel groupId={activeGroupId} currentUser={user} />
+          )}
+        </div>
       </div>
     </div>
   );
