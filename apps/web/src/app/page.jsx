@@ -13,11 +13,6 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [selectedGroupId, setSelectedGroupId] = useState('personal');
 
-  // Note State
-  const [newNoteTitle, setNewNoteTitle] = useState("");
-  const [newNoteBody, setNewNoteBody] = useState("");
-  const [showAddNote, setShowAddNote] = useState(false);
-
   // Fetch current user's profile color from DB (JWT may be stale)
   const { data: profileData } = useQuery({
     queryKey: ["userProfile"],
@@ -187,9 +182,6 @@ export default function Dashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
-      setNewNoteTitle("");
-      setNewNoteBody("");
-      setShowAddNote(false);
     },
   });
 
@@ -294,14 +286,17 @@ export default function Dashboard() {
     editNoteMutation.mutate({ noteId, title, body, images });
   };
 
-  const handleAddNote = (images = []) => {
-    if (!newNoteTitle.trim() && !newNoteBody.trim() && images.length === 0) return;
+  const handleAddNote = ({ title, body, images } = {}) => {
     if (!activeGroupId) return;
+    const cleanTitle = (title || "").trim();
+    const cleanBody = (body || "").trim();
+    const imageList = images || [];
+    if (!cleanTitle && !cleanBody && imageList.length === 0) return;
     createNoteMutation.mutate({
       groupId: activeGroupId,
-      title: newNoteTitle.trim(),
-      body: newNoteBody.trim(),
-      images,
+      title: cleanTitle,
+      body: cleanBody,
+      images: imageList,
     });
   };
 
@@ -346,7 +341,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-white font-inter text-[#2B2B2B] text-[13px] font-normal">
-      <div className="flex h-screen">
+      <div className="app-shell flex h-screen">
         <Sidebar
           groups={groups}
           selectedGroupId={selectedGroupId}
@@ -416,15 +411,9 @@ export default function Dashboard() {
               {activeGroupId !== 'personal' && (
                 <NoteList
                   notes={notes}
-                  showAddNote={showAddNote}
-                  setShowAddNote={setShowAddNote}
-                  newNoteTitle={newNoteTitle}
-                  setNewNoteTitle={setNewNoteTitle}
-                  newNoteBody={newNoteBody}
-                  setNewNoteBody={setNewNoteBody}
-                  handleAddNote={handleAddNote}
-                  handleDeleteNote={handleDeleteNote}
-                  handleEditNote={handleEditNote}
+                  onAddNote={handleAddNote}
+                  onEditNote={handleEditNote}
+                  onDeleteNote={handleDeleteNote}
                 />
               )}
             </>

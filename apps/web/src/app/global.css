@@ -7,3 +7,15 @@
     @apply outline-none focus:outline-none;
   }
 }
+
+.app-shell {
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+              filter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center center;
+  will-change: transform;
+}
+
+body[data-note-modal-open="true"] .app-shell {
+  transform: scale(0.95);
+  filter: brightness(0.92);
+}
