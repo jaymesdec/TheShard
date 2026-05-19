@@ -1,11 +1,34 @@
+import { useCallback, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import useUser from "@/utils/useUser";
 import NoteList from "@/components/NoteList";
 
+const FLASH_TARGET_STORAGE_KEY = "shard:flashTarget";
+
 export default function NotesPage() {
   const { data: user, loading: userLoading } = useUser();
   const queryClient = useQueryClient();
+  const [flashTarget, setFlashTarget] = useState(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = sessionStorage.getItem(FLASH_TARGET_STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed?.kind && parsed?.id) {
+        setFlashTarget({ kind: parsed.kind, id: parsed.id });
+      }
+    } catch {
+      // ignore malformed payload
+    }
+    sessionStorage.removeItem(FLASH_TARGET_STORAGE_KEY);
+  }, []);
+
+  const handleFlashConsumed = useCallback(() => {
+    setFlashTarget(null);
+  }, []);
 
   const { data: notesData } = useQuery({
     queryKey: ["notes", "personal"],
@@ -120,6 +143,8 @@ export default function NotesPage() {
           onAddNote={handleAddNote}
           onEditNote={handleEditNote}
           onDeleteNote={handleDeleteNote}
+          flashTarget={flashTarget}
+          onFlashConsumed={handleFlashConsumed}
         />
       </div>
     </div>

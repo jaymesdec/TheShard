@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { Trash2, Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DriBadge from "@/components/DriBadge";
 
 export default function TodoListCard({
@@ -13,8 +13,28 @@ export default function TodoListCard({
     members = [],
     onUpdateDri,
     isGroupContext = false,
+    flashTarget = null,
+    onFlashConsumed = () => {},
 }) {
     const [newItemTitle, setNewItemTitle] = useState("");
+    const itemRefs = useRef({});
+    const [flashingId, setFlashingId] = useState(null);
+
+    useEffect(() => {
+        if (!flashTarget || flashTarget.kind !== "todo") return;
+        const targetItem = list.items.find((i) => i.id === flashTarget.id);
+        if (!targetItem) return;
+        const element = itemRefs.current[flashTarget.id];
+        if (!element) return;
+
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        setFlashingId(flashTarget.id);
+        const timeoutId = setTimeout(() => {
+            setFlashingId(null);
+            onFlashConsumed();
+        }, 1500);
+        return () => clearTimeout(timeoutId);
+    }, [flashTarget, list.items, onFlashConsumed]);
 
     const incompleteItems = list.items.filter((item) => !item.completed);
     const completedItems = list.items.filter((item) => item.completed);
@@ -66,7 +86,13 @@ export default function TodoListCard({
                 {incompleteItems.map((item) => (
                     <div
                         key={item.id}
-                        className="flex items-center gap-2 py-2.5 min-w-0 group/item"
+                        ref={(element) => {
+                            if (element) itemRefs.current[item.id] = element;
+                            else delete itemRefs.current[item.id];
+                        }}
+                        className={`flex items-center gap-2 py-2.5 min-w-0 group/item rounded ${
+                            flashingId === item.id ? "flash-ring" : ""
+                        }`}
                     >
                         <button
                             onClick={(event) => {
@@ -100,7 +126,13 @@ export default function TodoListCard({
                         {completedItems.map((item) => (
                             <div
                                 key={item.id}
-                                className="flex items-center gap-2 py-1.5 opacity-50 min-w-0 group/item"
+                                ref={(element) => {
+                                    if (element) itemRefs.current[item.id] = element;
+                                    else delete itemRefs.current[item.id];
+                                }}
+                                className={`flex items-center gap-2 py-1.5 opacity-50 min-w-0 group/item rounded ${
+                                    flashingId === item.id ? "flash-ring" : ""
+                                }`}
                             >
                                 <button
                                     onClick={(event) => {

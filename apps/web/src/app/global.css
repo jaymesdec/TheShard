@@ -19,3 +19,19 @@ body[data-note-modal-open="true"] .app-shell {
   transform: scale(0.95);
   filter: brightness(0.92);
 }
+
+.flash-ring {
+  animation: flashRing 1.5s ease-out;
+}
+
+@keyframes flashRing {
+  0% {
+    box-shadow: 0 0 0 2px #2563FF, 0 0 0 6px rgba(37, 99, 255, 0.25);
+  }
+  60% {
+    box-shadow: 0 0 0 2px #2563FF, 0 0 0 6px rgba(37, 99, 255, 0.25);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}

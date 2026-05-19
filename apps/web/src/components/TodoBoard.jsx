@@ -16,6 +16,8 @@ export default function TodoBoard({
     members = [],
     onUpdateDri,
     isGroupContext = false,
+    flashTarget = null,
+    onFlashConsumed = () => {},
 }) {
     const [modalState, setModalState] = useState(null);
 
@@ -63,6 +65,8 @@ export default function TodoBoard({
                             members={members}
                             onUpdateDri={onUpdateDri}
                             isGroupContext={isGroupContext}
+                            flashTarget={flashTarget}
+                            onFlashConsumed={onFlashConsumed}
                         />
                     ))}
                 </div>

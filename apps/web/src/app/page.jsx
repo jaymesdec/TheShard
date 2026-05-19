@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, Bell, ChevronDown } from "lucide-react";
 import useUser from "@/utils/useUser";
@@ -8,11 +8,60 @@ import NoteList from "@/components/NoteList";
 import TodoBoard from "@/components/TodoBoard";
 import UserAvatar from "@/components/UserAvatar";
 import ChatPanel from "@/components/ChatPanel";
+import SearchDropdown from "@/components/SearchDropdown";
+
+const FLASH_TARGET_STORAGE_KEY = "shard:flashTarget";
 
 export default function Dashboard() {
   const { data: user, loading: userLoading } = useUser();
   const queryClient = useQueryClient();
   const [selectedGroupId, setSelectedGroupId] = useState('personal');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [flashTarget, setFlashTarget] = useState(null);
+  const searchContainerRef = useRef(null);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedQuery(searchQuery.trim());
+    }, 150);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = sessionStorage.getItem(FLASH_TARGET_STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed?.workspace) {
+        setSelectedGroupId(parsed.workspace);
+      }
+      setFlashTarget({ kind: parsed.kind, id: parsed.id });
+    } catch {
+      // ignore malformed payload
+    }
+    sessionStorage.removeItem(FLASH_TARGET_STORAGE_KEY);
+  }, []);
+
+  useEffect(() => {
+    if (!isSearchOpen) return;
+    const handlePointerDown = (event) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target)
+      ) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [isSearchOpen]);
+
+  const handleFlashConsumed = useCallback(() => {
+    setFlashTarget(null);
+  }, []);
 
   // Fetch current user's profile color from DB (JWT may be stale)
   const { data: profileData } = useQuery({
@@ -81,6 +130,48 @@ export default function Dashboard() {
   });
 
   const notes = notesData?.notes || [];
+
+  const { data: searchData, isFetching: isSearching } = useQuery({
+    queryKey: ["globalSearch", debouncedQuery, activeGroupId],
+    queryFn: async () => {
+      const url = `/api/search?q=${encodeURIComponent(debouncedQuery)}&active=${encodeURIComponent(activeGroupId)}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to search");
+      return response.json();
+    },
+    enabled: !!user && debouncedQuery.length > 0,
+    staleTime: 10_000,
+  });
+
+  const searchResults = searchData?.results || [];
+
+  const handleResultSelect = (result) => {
+    const targetWorkspace = result.group_id || "personal";
+    const isPersonalNote = result.kind === "note" && targetWorkspace === "personal";
+
+    setSearchQuery("");
+    setIsSearchOpen(false);
+
+    if (isPersonalNote) {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(
+          FLASH_TARGET_STORAGE_KEY,
+          JSON.stringify({
+            kind: result.kind,
+            id: result.id,
+            workspace: targetWorkspace,
+          }),
+        );
+        window.location.href = "/notes";
+      }
+      return;
+    }
+
+    if (targetWorkspace !== activeGroupId) {
+      setSelectedGroupId(targetWorkspace);
+    }
+    setFlashTarget({ kind: result.kind, id: result.id });
+  };
 
   // Mutations
   const createListMutation = useMutation({
@@ -357,15 +448,40 @@ export default function Dashboard() {
           <div className="h-[64px] flex items-center justify-between px-6 border-b border-[#EDEDED]">
             <div className="flex items-center gap-4 flex-1">
               <h1 className="text-xl font-bold text-[#2B2B2B]">The Shard</h1>
-              <div className="relative max-w-[360px] flex-1">
-                <div className="flex items-center h-[40px] px-4 border border-[#E5E5E5] rounded-full">
+              <div
+                ref={searchContainerRef}
+                className="relative max-w-[360px] flex-1"
+              >
+                <div className="flex items-center h-[40px] px-4 border border-[#E5E5E5] rounded-full focus-within:border-[#2563FF]">
                   <Search size={16} className="text-[#C3C3C3] mr-3" />
                   <input
                     type="text"
-                    placeholder="Search tasks..."
-                    className="flex-1 text-[14px] text-[#A3A3A3] bg-transparent outline-none"
+                    placeholder="Search notes and to-dos..."
+                    value={searchQuery}
+                    onChange={(event) => {
+                      setSearchQuery(event.target.value);
+                      setIsSearchOpen(true);
+                    }}
+                    onFocus={() => {
+                      if (searchQuery.trim()) setIsSearchOpen(true);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        setSearchQuery("");
+                        setIsSearchOpen(false);
+                      }
+                    }}
+                    className="flex-1 text-[14px] text-[#2B2B2B] placeholder:text-[#A3A3A3] bg-transparent outline-none"
                   />
                 </div>
+                {isSearchOpen && debouncedQuery.length > 0 && (
+                  <SearchDropdown
+                    query={debouncedQuery}
+                    results={searchResults}
+                    isLoading={isSearching}
+                    onSelect={handleResultSelect}
+                  />
+                )}
               </div>
             </div>
 
@@ -407,6 +523,8 @@ export default function Dashboard() {
                 members={isGroupContext ? members : []}
                 onUpdateDri={isGroupContext ? handleUpdateDri : null}
                 isGroupContext={isGroupContext}
+                flashTarget={flashTarget}
+                onFlashConsumed={handleFlashConsumed}
               />
 
               {activeGroupId !== 'personal' && (
@@ -415,6 +533,8 @@ export default function Dashboard() {
                   onAddNote={handleAddNote}
                   onEditNote={handleEditNote}
                   onDeleteNote={handleDeleteNote}
+                  flashTarget={flashTarget}
+                  onFlashConsumed={handleFlashConsumed}
                 />
               )}
             </>

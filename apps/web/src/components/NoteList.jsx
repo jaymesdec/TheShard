@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileText, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
@@ -9,8 +9,28 @@ export default function NoteList({
     onAddNote,
     onEditNote,
     onDeleteNote,
+    flashTarget = null,
+    onFlashConsumed = () => {},
 }) {
     const [modalState, setModalState] = useState(null);
+    const noteRefs = useRef({});
+    const [flashingId, setFlashingId] = useState(null);
+
+    useEffect(() => {
+        if (!flashTarget || flashTarget.kind !== "note") return;
+        const targetNote = notes.find((n) => n.id === flashTarget.id);
+        if (!targetNote) return;
+        const element = noteRefs.current[flashTarget.id];
+        if (!element) return;
+
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        setFlashingId(flashTarget.id);
+        const timeoutId = setTimeout(() => {
+            setFlashingId(null);
+            onFlashConsumed();
+        }, 1500);
+        return () => clearTimeout(timeoutId);
+    }, [flashTarget, notes, onFlashConsumed]);
 
     const openNewNote = () => setModalState({ mode: "new" });
     const openEditNote = (note) => setModalState({ mode: "edit", note });
@@ -53,8 +73,14 @@ export default function NoteList({
                         <motion.div
                             key={note.id}
                             layoutId={`note-${note.id}`}
+                            ref={(element) => {
+                                if (element) noteRefs.current[note.id] = element;
+                                else delete noteRefs.current[note.id];
+                            }}
                             onClick={() => openEditNote(note)}
-                            className="group break-inside-avoid mb-5 p-5 bg-white rounded-xl border border-[#E5E5E5] shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                            className={`group break-inside-avoid mb-5 p-5 bg-white rounded-xl border border-[#E5E5E5] shadow-sm hover:shadow-md transition-shadow cursor-pointer ${
+                                flashingId === note.id ? "flash-ring" : ""
+                            }`}
                         >
                             <div className="flex items-start justify-between gap-2 mb-3">
                                 <h4 className="text-[14px] font-semibold text-[#2B2B2B] leading-snug flex-1">

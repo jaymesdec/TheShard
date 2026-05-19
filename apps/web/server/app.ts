@@ -313,6 +313,7 @@ import * as groupLeaveRoute from '../src/app/api/groups/[id]/leave/route.js';
 import * as usersProfileRoute from '../src/app/api/users/profile/route.js';
 import * as usersSearchRoute from '../src/app/api/users/search/route.js';
 import * as uploadRoute from '../src/app/api/upload/route.js';
+import * as searchRoute from '../src/app/api/search/route.js';
 
 type RouteModule = Record<string, ((req: Request, ctx: any) => Response | Promise<Response>) | undefined>;
 
@@ -348,6 +349,7 @@ mountApiRoute('/todo-lists/:id', todoListByIdRoute as RouteModule);
 mountApiRoute('/users/profile', usersProfileRoute as RouteModule);
 mountApiRoute('/users/search', usersSearchRoute as RouteModule);
 mountApiRoute('/upload', uploadRoute as RouteModule);
+mountApiRoute('/search', searchRoute as RouteModule);
 
 // -- React Router SSR handler ----------------------------------------------
 

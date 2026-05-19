@@ -1022,6 +1022,140 @@ export const db = {
     }
   },
 
+  search: {
+    global: async (userId, q, { limit = 21, activeGroupId = null } = {}) => {
+      const trimmed = (q || '').trim();
+      if (!trimmed) return [];
+
+      if (usePostgres) {
+        await ensureSchema();
+        const pattern = `%${trimmed}%`;
+        const activeKey = activeGroupId === 'personal' ? null : activeGroupId;
+        const rows = await sql`
+          WITH user_groups AS (
+            SELECT group_id FROM app_group_members WHERE user_id = ${userId}
+          )
+          SELECT * FROM (
+            SELECT
+              'note'::text AS kind,
+              n.id,
+              n.title,
+              n.content AS snippet,
+              n.group_id,
+              COALESCE(g.name, 'Personal') AS group_name,
+              NULL::text AS list_id,
+              FALSE AS completed,
+              n.created_at
+            FROM app_notes n
+            LEFT JOIN app_groups g ON g.id = n.group_id
+            WHERE (COALESCE(n.title, '') ILIKE ${pattern} OR COALESCE(n.content, '') ILIKE ${pattern})
+              AND (
+                (n.group_id IS NULL AND n.created_by = ${userId})
+                OR n.group_id IN (SELECT group_id FROM user_groups)
+              )
+
+            UNION ALL
+
+            SELECT
+              'todo'::text AS kind,
+              t.id,
+              t.title,
+              NULL::text AS snippet,
+              t.group_id,
+              COALESCE(g.name, 'Personal') AS group_name,
+              t.list_id,
+              t.completed,
+              t.created_at
+            FROM app_todos t
+            LEFT JOIN app_groups g ON g.id = t.group_id
+            WHERE COALESCE(t.title, '') ILIKE ${pattern}
+              AND (
+                (t.group_id IS NULL AND t.created_by = ${userId})
+                OR t.group_id IN (SELECT group_id FROM user_groups)
+              )
+          ) AS combined
+          ORDER BY
+            (CASE WHEN group_id IS NOT DISTINCT FROM ${activeKey} THEN 0 ELSE 1 END),
+            group_name ASC,
+            created_at DESC
+          LIMIT ${limit}
+        `;
+        return rows.map((r) => ({
+          kind: r.kind,
+          id: r.id,
+          title: r.title,
+          snippet: r.snippet,
+          group_id: r.group_id,
+          group_name: r.group_name,
+          list_id: r.list_id,
+          completed: !!r.completed,
+          created_at: r.created_at,
+        }));
+      }
+
+      const store = readDb();
+      const needle = trimmed.toLowerCase();
+      const groupName = (gid) =>
+        gid
+          ? (store.groups || []).find((g) => g.id === gid)?.name ?? 'Unknown'
+          : 'Personal';
+      const memberGroupIds = new Set(
+        (store.group_members || [])
+          .filter((m) => m.user_id === userId)
+          .map((m) => m.group_id),
+      );
+      const accessible = (row) =>
+        (!row.group_id && row.created_by === userId) ||
+        memberGroupIds.has(row.group_id);
+
+      const noteHits = (store.notes || [])
+        .filter(accessible)
+        .filter(
+          (n) =>
+            (n.title || '').toLowerCase().includes(needle) ||
+            (n.content || '').toLowerCase().includes(needle),
+        )
+        .map((n) => ({
+          kind: 'note',
+          id: n.id,
+          title: n.title,
+          snippet: n.content,
+          group_id: n.group_id || null,
+          group_name: groupName(n.group_id),
+          list_id: null,
+          completed: false,
+          created_at: n.created_at,
+        }));
+
+      const todoHits = (store.todos || [])
+        .filter(accessible)
+        .filter((t) => (t.title || '').toLowerCase().includes(needle))
+        .map((t) => ({
+          kind: 'todo',
+          id: t.id,
+          title: t.title,
+          snippet: null,
+          group_id: t.group_id || null,
+          group_name: groupName(t.group_id),
+          list_id: t.list_id || null,
+          completed: !!t.completed,
+          created_at: t.created_at,
+        }));
+
+      const activeKey = activeGroupId === 'personal' ? null : activeGroupId;
+      return [...noteHits, ...todoHits]
+        .sort((a, b) => {
+          const aActive = a.group_id === activeKey ? 0 : 1;
+          const bActive = b.group_id === activeKey ? 0 : 1;
+          if (aActive !== bActive) return aActive - bActive;
+          if (a.group_name !== b.group_name)
+            return a.group_name.localeCompare(b.group_name);
+          return new Date(b.created_at) - new Date(a.created_at);
+        })
+        .slice(0, limit);
+    },
+  },
+
   messages: {
     list: async (groupId) => {
       if (usePostgres) {
